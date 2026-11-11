@@ -1,14 +1,21 @@
 package core_http_middleware
 
 import (
+	"context"
 	"net/http"
+	"time"
 
 	"github.com/google/uuid"
+	core_logger "github.com/Kriffi/golang-todoapp/internal/core/logger"
+	core_http_response "github.com/Kriffi/golang-todoapp/internal/core/transport/http/response"
+	"go.uber.org/zap"
+)
+
+const (
+	requestIDHeader = "X-Request-ID"
 )
 
 func RequestID() Middleware {
-	const requestIDHeader = "X-Request-ID"
-
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			requestID := r.Header.Get(requestIDHeader)
@@ -20,6 +27,67 @@ func RequestID() Middleware {
 			w.Header().Set(requestIDHeader, requestID)
 
 			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+func Logger(log *core_logger.Logger) Middleware {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			requestID := r.Header.Get(requestIDHeader)
+
+			l := log.With(
+				zap.String("request_id", requestID),
+				zap.String("url", r.URL.String()),
+			)
+
+			ctx := context.WithValue(r.Context(), "log", l)
+
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
+}
+
+func Panic() Middleware {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			ctx := r.Context()
+			log := core_logger.FromContext(ctx)
+			responseHandler := core_http_response.NewHTTPResponseHandler(log, w)
+
+			defer func() {
+				if p := recover(); p != nil {
+					responseHandler.PanicResponse(
+						p,
+						"during handle HTTP request got unexpected panic",
+					)
+				}
+			}()
+
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+func Trace() Middleware {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			ctx := r.Context()
+			log := core_logger.FromContext(ctx)
+
+			before := time.Now()
+			log.Debug(
+				">>> incoming HTTP request",
+				zap.Time("time", before.UTC()),
+			)
+
+			next.ServeHTTP(w, r)
+
+			log.Debug(
+				"<<< done HTTP request",
+				// ...
+				zap.Duration("latency", time.Now().Sub(before)),
+			)
 		})
 	}
 }
