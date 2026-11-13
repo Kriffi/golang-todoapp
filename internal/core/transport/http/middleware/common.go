@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/google/uuid"
 	core_logger "github.com/Kriffi/golang-todoapp/internal/core/logger"
 	core_http_response "github.com/Kriffi/golang-todoapp/internal/core/transport/http/response"
+	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
 
