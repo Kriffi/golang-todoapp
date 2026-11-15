@@ -78,5 +78,3 @@ docker compose up -d --build todoapp
 ```bash
 go test ./...
 ```
-
-Проект выполнен по [практической части курса Go](https://www.youtube.com/watch?v=uxzZJw-52qk). Интерфейс воссоздан по демонстрации автора и подключён к API проекта.
