@@ -1,9 +1,82 @@
-<img width="2549" height="1383" alt="image" src="https://github.com/user-attachments/assets/f2435384-a852-4434-b512-2ea8ff1b21b1" />
+# TodoApp
 
-<img width="2557" height="1380" alt="image" src="https://github.com/user-attachments/assets/84ddd437-4de3-4002-9a62-e3be1572f55c" />
+TodoApp — учебный проект на Go для управления задачами. Приложение хранит данные в PostgreSQL и предоставляет REST API, веб-интерфейс и документацию Swagger.
 
-<img width="2550" height="1168" alt="image" src="https://github.com/user-attachments/assets/ef990215-85fa-4799-a250-346c0c0c937a" />
+## Возможности
 
-<img width="2550" height="1213" alt="image" src="https://github.com/user-attachments/assets/073bc83b-49f9-40d7-b0c1-db0e610af741" />
+- Создавать, редактировать и удалять задачи и пользователей.
+- Отмечать задачи выполненными и возвращать их в работу.
+- Фильтровать задачи по пользователю, просматривать статистику по пользователю и периоду.
+- Вызывать API из Swagger UI.
 
-<img width="1768" height="874" alt="image" src="https://github.com/user-attachments/assets/22326e08-ba4f-431e-bfaf-7c76200aee7f" />
+## Скриншоты
+
+На скриншотах использованы демонстрационные данные.
+
+| Задачи | Статистика |
+| --- | --- |
+| ![Список задач в тёмной теме](docs/screenshots/tasks.jpg) | ![Статистика выполнения задач в светлой теме](docs/screenshots/statistics.jpg) |
+
+<details>
+<summary>Swagger UI</summary>
+
+![Документация REST API в Swagger UI](docs/screenshots/swagger.jpg)
+
+</details>
+
+## Локальный запуск
+
+Понадобится Docker с Compose. Для команд через Makefile нужен GNU Make, для проверки кода на хосте — Go 1.27.1.
+
+1. Скопируй `.env.example` в `.env` и задай `POSTGRES_USER`, `POSTGRES_PASSWORD` и `POSTGRES_DB`. При первом запуске используй новые локальные учётные данные. При повторном запуске сохрани параметры, с которыми инициализировалась база.
+2. Запусти PostgreSQL, дождись запуска и примени миграции.
+
+   ```bash
+   make env-up
+   make migrate-up
+   ```
+
+3. Собери и запусти приложение.
+
+   ```bash
+   make todoapp-deploy
+   ```
+
+   Открой [TodoApp](http://127.0.0.1:5050/) или [Swagger UI](http://127.0.0.1:5050/swagger/index.html). API доступен по адресу `http://127.0.0.1:5050/api/v1`. В пустой базе сначала создай пользователя, затем назначь ему задачу.
+
+<details>
+<summary>Запуск в Windows PowerShell без Make</summary>
+
+Выполни из корня репозитория, заполнив `.env` как в шаге 1.
+
+```powershell
+$env:PROJECT_ROOT = (Get-Location).Path.Replace('\', '/')
+docker compose up -d todoapp-postgres
+docker compose exec todoapp-postgres pg_isready -h 127.0.0.1
+```
+
+После ответа `accepting connections` выполни миграции внутри контейнера. Команда использует уже переданные контейнеру переменные `POSTGRES_USER` и `POSTGRES_DB`.
+
+```powershell
+Get-Content -Raw migrations/000001_init.up.sql |
+  docker compose exec -T todoapp-postgres sh -c 'psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
+docker compose up -d --build todoapp
+```
+
+Запускай этот SQL только на новой базе. Если хочешь использовать учёт версий миграций, используй `make migrate-up`.
+
+</details>
+
+## Структура
+
+- `cmd/todoapp` — запуск приложения и подключение компонентов.
+- `internal/features` — пользователи, задачи, статистика и веб-страница. HTTP-обработчики, сервисы и репозитории разделены.
+- `migrations` — схема PostgreSQL.
+- `public/index.html` — веб-интерфейс.
+- `docs` — сгенерированная спецификация Swagger и скриншоты.
+
+```bash
+go test ./...
+```
+
+Проект выполнен по [практической части курса Go](https://www.youtube.com/watch?v=uxzZJw-52qk). Интерфейс воссоздан по демонстрации автора и подключён к API проекта.

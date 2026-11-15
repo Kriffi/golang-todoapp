@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Список дел</title>
+<style>
+:root{color-scheme:dark;--bg:#0e1117;--side:#151a24;--card:#171d27;--field:#202633;--line:#242b38;--text:#edf1f7;--muted:#a0aabb;--accent:#57a5f6;--accent-ink:#061321;--chosen:#1b2b40;--green:#61cf8b;--gold:#e5b251;--purple:#ae87f4;--danger:#ff8c98}
+:root[data-theme=light]{color-scheme:light;--bg:#f4f6f8;--side:#fff;--card:#fff;--field:#eef0f3;--line:#e3e7ed;--text:#1b2431;--muted:#566171;--accent:#0067d7;--accent-ink:#fff;--chosen:#e5f1fd;--green:#168348;--gold:#956500;--purple:#7356c1;--danger:#a7273d}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;min-height:100svh;background:var(--bg);color:var(--text);font:15px/1.45 Inter,system-ui,sans-serif}
+button,input,select,textarea{font:inherit}
+button{cursor:pointer;border:1px solid var(--line);border-radius:8px;background:var(--field);color:var(--text);padding:9px 15px;font-weight:650}
+button:disabled{cursor:default;opacity:.45}
+button:hover:not(:disabled){filter:brightness(1.15)}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.primary{background:var(--accent);color:var(--accent-ink);border-color:transparent}
+.icon-button{border:0;background:transparent;color:var(--muted);padding:5px 9px;white-space:nowrap}
+.danger{color:var(--danger)}
+aside{position:fixed;inset:0 auto 0 0;width:224px;padding:23px 14px;background:var(--side);border-right:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:10px;margin:0 4px 28px;font-weight:750;font-size:18px}
+.logo{display:grid;place-items:center;width:35px;height:35px;border-radius:9px;background:linear-gradient(140deg,#537ff1,#8c80ef);color:#fff;font-size:24px;line-height:1}
+.version,.chip{border-radius:999px;background:var(--field);color:var(--muted);font-size:11px;padding:3px 7px;white-space:nowrap}
+.nav-label{display:block;margin:0 9px 8px;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.09em;font-weight:700}
+nav{display:grid;gap:4px}
+nav button{width:100%;background:transparent;border:0;text-align:left;color:var(--muted);padding:8px 10px}
+nav button[aria-current=page]{background:var(--chosen);color:var(--accent)}
+.nav-icon{display:inline-block;width:22px}
+#theme{display:flex;width:100%;align-items:center;justify-content:space-between;margin-top:23px;padding:8px 10px;color:var(--muted);font-size:13px}
+.switch{width:30px;height:16px;background:var(--bg);border-radius:12px;padding:2px;display:flex}
+.switch::after{content:"";display:block;width:12px;height:12px;border-radius:50%;background:var(--muted)}
+[data-theme=light] .switch{background:var(--accent);justify-content:flex-end}
+[data-theme=light] .switch::after{background:white}
+main{margin-left:224px;padding:32px 38px;max-width:1540px}
+.page-heading{display:flex;justify-content:space-between;align-items:center;gap:16px;margin:0 0 16px}
+h1{margin:0;font-size:24px;line-height:1.2}
+.filters,.record,.panel,.metric{background:var(--card);border:1px solid var(--line);border-radius:10px}
+.filters{display:flex;flex-wrap:wrap;gap:12px;align-items:center;padding:13px 16px;margin-bottom:16px}
+label{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:13px}
+input,select,textarea{min-width:0;border:1px solid var(--line);color:var(--text);background:var(--field);border-radius:7px;padding:7px 9px}
+.filters .owner{width:min(225px,45vw)}
+#task-limit,#user-limit{width:74px}
+.filters .reset{margin-left:auto}
+.records{display:grid;gap:10px}
+.record{display:flex;align-items:flex-start;gap:12px;padding:15px 17px}
+.record:hover,.record:focus-within{border-color:var(--accent)}
+.record-title,.description{margin:0;overflow-wrap:anywhere}
+.record-title{font-size:15px}
+.record.done .record-title{text-decoration:line-through;color:var(--muted)}
+.description{font-size:13px;color:var(--muted);margin:3px 0}
+.record-content{min-width:0;flex:1}
+.tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px}
+.chip.good{color:var(--green)}
+.chip.pending{color:var(--gold)}
+.chip.duration{color:var(--accent)}
+.toggle{width:21px;height:21px;flex:0 0 21px;border:2px solid var(--line);background:none;border-radius:50%;padding:0;line-height:17px}
+.done .toggle{background:#22a75b;border-color:#22a75b;color:white;box-shadow:0 0 10px #22a75b65}
+.actions{display:flex;gap:1px}
+.avatar{display:grid;place-items:center;flex:0 0 34px;height:34px;border-radius:50%;background:var(--chosen);color:var(--accent);font-weight:750;font-size:13px}
+.pages{display:flex;justify-content:flex-end;align-items:center;gap:9px;margin-top:14px;color:var(--muted)}
+.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:16px}
+.metric{--metric:var(--accent);border-top:3px solid var(--metric);padding:16px;min-height:138px}
+.metric:nth-child(2){--metric:var(--green)}.metric:nth-child(3){--metric:var(--gold)}.metric:nth-child(4){--metric:var(--purple)}
+.metric-icon{display:grid;place-items:center;width:30px;height:30px;border-radius:7px;background:var(--field);color:var(--metric);margin-bottom:9px}
+.metric-title,.panel h2{display:block;color:var(--muted);font-size:11px;letter-spacing:.04em;text-transform:uppercase}
+.metric strong{display:block;overflow-wrap:anywhere;color:var(--metric);font-size:26px;margin:3px 0}
+.metric small,.panel small,.empty{color:var(--muted)}
+.panel{padding:18px}
+.panel h2{margin:0 0 10px}
+.progress-label{display:flex;justify-content:space-between}
+.track{height:8px;background:var(--field);border-radius:10px;overflow:hidden;margin:5px 0 12px}
+.bar{background:var(--green);height:100%;transition:width .2s}
+#remaining-bar{background:var(--gold)}
+.status{color:var(--danger);margin:0 0 12px}
+dialog{width:min(475px,calc(100% - 26px));border-radius:13px;border:1px solid var(--line);background:var(--card);color:var(--text);padding:21px}
+dialog::backdrop{background:#04070ca0}
+dialog h2{margin:0 0 13px}
+dialog label{display:grid;gap:5px;margin-bottom:12px}
+dialog textarea{resize:vertical;min-height:84px}
+dialog footer{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}
+#toast{position:fixed;bottom:22px;right:22px;max-width:calc(100vw - 44px);padding:10px 14px;border:1px solid var(--green);border-radius:9px;background:var(--card);color:var(--green)}
+@media(max-width:900px){main{padding:25px 22px}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:620px){aside{position:static;width:auto;padding:12px;border-right:0;border-bottom:1px solid var(--line)}.brand{margin:0 0 10px}.nav-label{display:none}nav{display:flex;gap:4px}nav button{flex:1;padding:8px 4px;text-align:center}#theme{width:auto;gap:9px;margin-top:10px}main{margin-left:0;padding:18px 12px}.actions{flex-direction:column}.metric{padding:12px}.page-heading h1{font-size:21px}}
+</style>
+</head>
+<body>
+<aside>
+  <div class="brand"><span class="logo" aria-hidden="true">☑</span> TodoApp <span class="version">v1</span></div>
+  <span class="nav-label">Навигация</span>
+  <nav aria-label="Разделы">
+    <button type="button" data-page="tasks" aria-current="page"><span class="nav-icon" aria-hidden="true">☑</span>Задачи</button>
+    <button type="button" data-page="users"><span class="nav-icon" aria-hidden="true">♙</span>Пользователи</button>
+    <button type="button" data-page="statistics"><span class="nav-icon" aria-hidden="true">▥</span>Статистика</button>
+  </nav>
+  <button id="theme" type="button" role="switch" aria-checked="false"><span id="theme-label">☾ Dark mode</span><span class="switch" aria-hidden="true"></span></button>
+</aside>
+<main>
+  <p id="status" class="status" role="alert" hidden></p>
+  <section id="tasks">
+    <header class="page-heading"><h1>Задачи</h1><button class="primary" id="new-task" type="button">＋ Новая задача</button></header>
+    <form class="filters" id="task-filters">
+      <label>Пользователь <select id="task-owner" class="owner"></select></label>
+      <label>На странице <select id="task-limit"><option>10</option><option selected>20</option><option>50</option><option>100</option></select></label>
+      <button class="reset" type="reset">Сбросить</button>
+    </form>
+    <div class="records" id="task-list" aria-live="polite"></div>
+    <div class="pages" id="task-pages" hidden></div>
+  </section>
+  <section id="users" hidden>
+    <header class="page-heading"><h1>Пользователи</h1><button class="primary" id="new-user" type="button">＋ Новый пользователь</button></header>
+    <form class="filters" id="user-filters">
+      <label>На странице <select id="user-limit"><option>10</option><option selected>20</option><option>50</option><option>100</option></select></label>
+      <button class="reset" type="reset">Сбросить</button>
+    </form>
+    <div class="records" id="user-list" aria-live="polite"></div>
+    <div class="pages" id="user-pages" hidden></div>
+  </section>
+  <section id="statistics" hidden>
+    <header class="page-heading"><h1>Статистика</h1></header>
+    <form class="filters" id="stats-filters">
+      <label>Пользователь <select id="stats-owner" class="owner"></select></label>
+      <label>С <input id="stats-from" type="date"></label>
+      <label>По <input id="stats-to" type="date"></label>
+      <button class="reset" type="reset">Сбросить</button>
+      <button class="primary" type="submit">Применить</button>
+    </form>
+    <div id="stats-results" aria-live="polite">
+      <div class="metrics">
+        <article class="metric"><span class="metric-icon" aria-hidden="true">＋</span><span class="metric-title">Создано задач</span><strong id="count-created">—</strong><small>Всего в системе</small></article>
+        <article class="metric"><span class="metric-icon" aria-hidden="true">✓</span><span class="metric-title">Выполнено задач</span><strong id="count-completed">—</strong><small>Успешно завершены</small></article>
+        <article class="metric"><span class="metric-icon" aria-hidden="true">▥</span><span class="metric-title">Процент выполнения</span><strong id="completion-rate">—</strong><small>От всех созданных задач</small></article>
+        <article class="metric"><span class="metric-icon" aria-hidden="true">◷</span><span class="metric-title">Среднее время выполнения</span><strong id="average-time">—</strong><small>От создания до готовности</small></article>
+      </div>
+      <article class="panel">
+        <h2>Обзор прогресса</h2>
+        <div class="progress-label"><small>Выполнено</small><small id="completed-ratio"></small></div>
+        <div class="track"><div id="completed-bar" class="bar"></div></div>
+        <div class="progress-label"><small>В работе</small><small id="remaining-ratio"></small></div>
+        <div class="track"><div id="remaining-bar" class="bar"></div></div>
+      </article>
+    </div>
+  </section>
+</main>
+<dialog id="editor">
+  <form id="editor-form">
+    <h2 id="editor-title"></h2>
+    <div id="task-fields">
+      <label>Название <input name="title" maxlength="100"></label>
+      <label>Описание <textarea name="description" maxlength="1000"></textarea></label>
+      <label id="author-field">Пользователь <select name="author"></select></label>
+    </div>
+    <div id="user-fields">
+      <label>Имя <input name="fullName" minlength="3" maxlength="100"></label>
+      <label>Телефон <input name="phone" type="tel" pattern="\+[0-9]{9,14}" placeholder="+79991234567"></label>
+    </div>
+    <p id="editor-error" class="status" role="alert" hidden></p>
+    <footer><button id="cancel-edit" type="button">Отмена</button><button id="save-edit" class="primary" type="submit">Сохранить</button></footer>
+  </form>
+</dialog>
+<dialog id="confirm-delete">
+  <form id="delete-form"><h2>Удаление</h2><p id="delete-message"></p>
+  <p id="delete-error" class="status" role="alert" hidden></p>
+  <footer><button id="cancel-delete" type="button">Отмена</button><button class="danger" id="apply-delete" type="submit">Удалить</button></footer></form>
+</dialog>
+<div role="status" id="toast" hidden></div>
+<script>
+"use strict";
+const byId = id => document.getElementById(id);
+const editor = byId("editor");
+const editorForm = byId("editor-form");
+const fields = editorForm.elements;
+const deleteDialog = byId("confirm-delete");
+const pageIndex = {tasks: 0, users: 0};
+const dateFormat = new Intl.DateTimeFormat("en-US", {year: "numeric", month: "short", day: "numeric"});
+const elapsedFormat = new Intl.NumberFormat("ru-RU");
+const timeFormat = new Intl.DateTimeFormat("en-US", {month: "short", day: "numeric", hour: "2-digit", minute: "2-digit"});
+let currentPage = "tasks";
+let users = [];
+let editing;
+let deleting;
+let refreshNumber = 0;
+let toastTimer;
+
+function element(tag, className, text) {
+  const node = document.createElement(tag);
+  node.className = className;
+  if (text !== undefined) node.textContent = text;
+  return node;
+}
+
+async function api(path, method = "GET", body) {
+  const response = await fetch("/api/v1" + path, {
+    method,
+    headers: body === undefined ? undefined : {"Content-Type": "application/json"},
+    body: body === undefined ? undefined : JSON.stringify(body)
+  });
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.error || error.message || "Ошибка HTTP " + response.status);
+  }
+  if (response.status !== 204) return response.json();
+}
+
+function showError(id, error) {
+  const node = byId(id);
+  node.hidden = !error;
+  node.textContent = error ? error.message : "";
+}
+
+function notify(message) {
+  const toast = byId("toast");
+  toast.textContent = message;
+  toast.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { toast.hidden = true; }, 2400);
+}
+
+function fillUsers(select, firstLabel) {
+  const selected = select.value;
+  select.replaceChildren(new Option(firstLabel, ""), ...users.map(user => new Option(user.full_name + " · ID: " + user.id, user.id)));
+  select.value = Array.from(select.options).some(item => item.value === selected) ? selected : "";
+}
+
+function syncUsers() {
+  fillUsers(byId("task-owner"), "Все пользователи");
+  fillUsers(byId("stats-owner"), "Все пользователи");
+  fillUsers(fields.author, "Выберите пользователя");
+}
+
+function formatElapsed(start, end) {
+  const seconds = Math.max(0, Math.floor((new Date(end) - new Date(start)) / 1000));
+  if (seconds < 60) return seconds + " с";
+  if (seconds < 3600) return Math.floor(seconds / 60) + " мин";
+  if (seconds < 86400) return Math.floor(seconds / 3600) + " ч";
+  return elapsedFormat.format(Math.floor(seconds / 86400)) + " д";
+}
+
+function taskCard(task) {
+  const card = element("article", "record" + (task.completed ? " done" : ""));
+  const toggle = element("button", "toggle", task.completed ? "✓" : "");
+  toggle.type = "button";
+  toggle.setAttribute("aria-label", task.completed ? "Вернуть в работу" : "Выполнить задачу");
+  toggle.addEventListener("click", async () => {
+    toggle.disabled = true;
+    try {
+      await api("/tasks/" + task.id, "PATCH", {completed: !task.completed});
+      notify(task.completed ? "Задача возвращена в работу" : "Задача выполнена");
+      await refresh();
+    } catch (error) {
+      showError("status", error);
+    } finally {
+      toggle.disabled = false;
+    }
+  });
+  const content = element("div", "record-content");
+  content.append(element("h2", "record-title", task.title));
+  if (task.description) content.append(element("p", "description", task.description));
+  const tags = element("div", "tags");
+  const user = users.find(item => item.id === task.author_user_id);
+  tags.append(
+    element("span", "chip", "♙ " + (user ? user.full_name : "Пользователь") + " · ID: " + task.author_user_id),
+    element("span", "chip", "▦ " + dateFormat.format(new Date(task.created_at))),
+    element("span", "chip " + (task.completed ? "good" : "pending"), task.completed ? "✓ Готово: " + timeFormat.format(new Date(task.completed_at)) : "◷ В работе · " + formatElapsed(task.created_at, Date.now())),
+    element("span", "chip", "v" + task.version)
+  );
+  if (task.completed && task.completed_at) {
+    const duration = element("span", "chip duration", "◷ " + formatElapsed(task.created_at, task.completed_at));
+    duration.title = "Время выполнения";
+    tags.insertBefore(duration, tags.lastElementChild);
+  }
+  content.append(tags);
+  card.append(toggle, content, recordActions("tasks", task));
+  return card;
+}
+
+function userCard(user) {
+  const card = element("article", "record");
+  const avatar = element("span", "avatar", user.full_name.trim().split(/\s+/).slice(0, 2).map(part => part[0]).join("").toUpperCase());
+  const content = element("div", "record-content");
+  content.append(element("h2", "record-title", user.full_name));
+  if (user.phone_number) content.append(element("p", "description", user.phone_number));
+  const tags = element("div", "tags");
+  tags.append(element("span", "chip", "ID: " + user.id), element("span", "chip", "v" + user.version));
+  content.append(tags);
+  card.append(avatar, content, recordActions("users", user));
+  return card;
+}
+
+function recordActions(kind, record) {
+  const group = element("div", "actions");
+  const editButton = element("button", "icon-button", "✎");
+  const deleteButton = element("button", "icon-button danger", "×");
+  editButton.type = deleteButton.type = "button";
+  editButton.setAttribute("aria-label", "Редактировать");
+  deleteButton.setAttribute("aria-label", "Удалить");
+  editButton.addEventListener("click", () => openEditor(kind, record));
+  deleteButton.addEventListener("click", () => {
+    deleting = {kind, record};
+    byId("delete-message").textContent = "Удалить «" + (record.title || record.full_name) + "»?";
+    showError("delete-error");
+    deleteDialog.showModal();
+  });
+  group.append(editButton, deleteButton);
+  return group;
+}
+
+function showPageControls(kind, previous, next) {
+  const pages = byId(kind === "tasks" ? "task-pages" : "user-pages");
+  const backButton = element("button", "", "Назад");
+  const forwardButton = element("button", "", "Далее");
+  backButton.disabled = !previous;
+  forwardButton.disabled = !next;
+  backButton.onclick = () => { pageIndex[kind]--; refresh(); };
+  forwardButton.onclick = () => { pageIndex[kind]++; refresh(); };
+  pages.hidden = !previous && !next;
+  pages.replaceChildren(backButton, element("span", "", "Страница " + (pageIndex[kind] + 1)), forwardButton);
+}
+
+async function loadList(kind, requestNumber) {
+  const isTasks = kind === "tasks";
+  const prefix = isTasks ? "task" : "user";
+  const limit = Number(byId(prefix + "-limit").value);
+  const offset = pageIndex[kind] * limit;
+  const query = new URLSearchParams({limit, offset});
+  if (isTasks && byId("task-owner").value) query.set("user_id", byId("task-owner").value);
+  const result = (await api("/" + kind + "?" + query)) || [];
+  if (requestNumber !== refreshNumber) return;
+  if (result.length === 0 && pageIndex[kind] > 0) {
+    pageIndex[kind]--;
+    return loadList(kind, requestNumber);
+  }
+  let next = false;
+  if (result.length === limit) {
+    query.set("limit", "1");
+    query.set("offset", String(offset + limit));
+    next = ((await api("/" + kind + "?" + query)) || []).length > 0;
+  }
+  if (requestNumber !== refreshNumber) return;
+  const list = byId(prefix + "-list");
+  list.replaceChildren(...result.map(isTasks ? taskCard : userCard));
+  if (result.length === 0) list.append(element("p", "empty", isTasks ? "Задач пока нет" : "Пользователей пока нет"));
+  showPageControls(kind, pageIndex[kind] > 0, next);
+}
+
+async function loadStatistics(requestNumber) {
+  const query = new URLSearchParams();
+  const owner = byId("stats-owner").value;
+  const from = byId("stats-from").value;
+  const to = byId("stats-to").value;
+  if (owner) query.set("user_id", owner);
+  if (from) query.set("from", from);
+  if (to) query.set("to", to);
+  const result = await api("/statistics?" + query);
+  if (requestNumber !== refreshNumber) return;
+  const {tasks_created: created, tasks_completed: completed, tasks_completed_rate: rate, tasks_average_completion_time: average} = result;
+  const fraction = rate ?? 0;
+  const remainingRate = created === 0 ? 0 : 100 - fraction;
+  byId("count-created").textContent = created;
+  byId("count-completed").textContent = completed;
+  byId("completion-rate").textContent = rate === null ? "—" : fraction.toFixed(1) + "%";
+  byId("average-time").textContent = average ?? "—";
+  byId("completed-ratio").textContent = completed + " / " + created + " (" + fraction.toFixed(1) + "%)";
+  byId("remaining-ratio").textContent = (created - completed) + " / " + created + " (" + remainingRate.toFixed(1) + "%)";
+  byId("completed-bar").style.width = fraction + "%";
+  byId("remaining-bar").style.width = remainingRate + "%";
+}
+
+async function refresh() {
+  const requestNumber = ++refreshNumber;
+  const page = currentPage;
+  showError("status");
+  try {
+    if (page === "statistics") await loadStatistics(requestNumber);
+    else await loadList(page, requestNumber);
+  } catch (error) {
+    if (requestNumber === refreshNumber) showError("status", error);
+  }
+}
+
+function openEditor(kind, record) {
+  editing = {kind, record};
+  const isTask = kind === "tasks";
+  editorForm.reset();
+  showError("editor-error");
+  byId("editor-title").textContent = isTask ? (record ? "Редактировать задачу" : "Новая задача") : (record ? "Редактировать пользователя" : "Новый пользователь");
+  byId("task-fields").hidden = !isTask;
+  byId("user-fields").hidden = isTask;
+  byId("author-field").hidden = Boolean(record);
+  fields.title.disabled = fields.description.disabled = !isTask;
+  fields.author.disabled = !isTask || Boolean(record);
+  fields.fullName.disabled = fields.phone.disabled = isTask;
+  fields.title.required = fields.fullName.required = fields.author.required = true;
+  if (record) {
+    if (isTask) {
+      fields.title.value = record.title;
+      fields.description.value = record.description ?? "";
+    } else {
+      fields.fullName.value = record.full_name;
+      fields.phone.value = record.phone_number ?? "";
+    }
+  }
+  editor.showModal();
+}
+
+async function reloadUsers() {
+  users = (await api("/users")) || [];
+  syncUsers();
+}
+
+editorForm.addEventListener("submit", async event => {
+  event.preventDefault();
+  const {kind, record} = editing;
+  const task = kind === "tasks";
+  const body = task
+    ? {title: fields.title.value.trim(), description: fields.description.value.trim() || null}
+    : {full_name: fields.fullName.value.trim(), phone_number: fields.phone.value.trim() || null};
+  if (task && !record) body.author_user_id = Number(fields.author.value);
+  byId("save-edit").disabled = true;
+  try {
+    await api("/" + kind + (record ? "/" + record.id : ""), record ? "PATCH" : "POST", body);
+  } catch (error) {
+    showError("editor-error", error);
+    return;
+  } finally {
+    byId("save-edit").disabled = false;
+  }
+  editor.close();
+  notify(task ? "Задача сохранена" : "Пользователь сохранён");
+  try {
+    if (!task) await reloadUsers();
+    await refresh();
+  } catch (error) {
+    showError("status", error);
+  }
+});
+
+byId("delete-form").addEventListener("submit", async event => {
+  event.preventDefault();
+  const {kind, record} = deleting;
+  byId("apply-delete").disabled = true;
+  try {
+    await api("/" + kind + "/" + record.id, "DELETE");
+  } catch (error) {
+    showError("delete-error", error);
+    return;
+  } finally {
+    byId("apply-delete").disabled = false;
+  }
+  deleteDialog.close();
+  notify(kind === "tasks" ? "Задача удалена" : "Пользователь удалён");
+  try {
+    if (kind === "users") await reloadUsers();
+    await refresh();
+  } catch (error) {
+    showError("status", error);
+  }
+});
+
+byId("cancel-edit").onclick = () => editor.close();
+byId("cancel-delete").onclick = () => deleteDialog.close();
+byId("new-task").onclick = () => openEditor("tasks");
+byId("new-user").onclick = () => openEditor("users");
+
+for (const [prefix, page] of [["task", "tasks"], ["user", "users"]]) {
+  const filter = byId(prefix + "-filters");
+  const resetPage = () => { pageIndex[page] = 0; refresh(); };
+  filter.addEventListener("change", resetPage);
+  filter.addEventListener("submit", event => { event.preventDefault(); resetPage(); });
+  filter.addEventListener("reset", () => setTimeout(resetPage, 0));
+}
+byId("stats-filters").addEventListener("submit", event => { event.preventDefault(); refresh(); });
+byId("stats-filters").addEventListener("reset", () => setTimeout(refresh, 0));
+
+const nav = [...document.querySelectorAll("nav button")];
+for (const button of nav) {
+  button.addEventListener("click", () => {
+    currentPage = button.dataset.page;
+    for (const item of nav) {
+      byId(item.dataset.page).hidden = item !== button;
+      if (item === button) item.setAttribute("aria-current", "page");
+      else item.removeAttribute("aria-current");
+    }
+    refresh();
+  });
+}
+
+function setTheme(theme) {
+  const light = theme === "light";
+  document.documentElement.dataset.theme = theme;
+  byId("theme").setAttribute("aria-checked", String(light));
+  byId("theme-label").textContent = light ? "☀ Light mode" : "☾ Dark mode";
+}
+setTheme(localStorage.getItem("todoapp-theme") === "light" ? "light" : "dark");
+byId("theme").onclick = () => {
+  const theme = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+  setTheme(theme);
+  localStorage.setItem("todoapp-theme", theme);
+};
+
+reloadUsers().then(refresh).catch(error => showError("status", error));
+</script>
+</body>
+</html>

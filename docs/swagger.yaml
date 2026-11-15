@@ -1,0 +1,523 @@
+basePath: /api/v1
+definitions:
+  core_http_response.ErrorResponseBody:
+    properties:
+      error:
+        type: string
+      message:
+        type: string
+    type: object
+  statistics_transport_http.GetStatisticsResponse:
+    properties:
+      tasks_average_completion_time:
+        type: string
+      tasks_completed:
+        type: integer
+      tasks_completed_rate:
+        type: number
+      tasks_created:
+        type: integer
+    type: object
+  tasks_transport_http.CreateTaskRequest:
+    properties:
+      author_user_id:
+        type: integer
+      description:
+        maxLength: 1000
+        minLength: 1
+        type: string
+      title:
+        maxLength: 100
+        minLength: 1
+        type: string
+    required:
+    - author_user_id
+    - title
+    type: object
+  tasks_transport_http.GetTaskResponse:
+    properties:
+      author_user_id:
+        type: integer
+      completed:
+        type: boolean
+      completed_at:
+        type: string
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      title:
+        type: string
+      version:
+        type: integer
+    type: object
+  tasks_transport_http.PatchTaskRequest:
+    properties:
+      completed:
+        type: boolean
+      description:
+        type: string
+      title:
+        type: string
+    type: object
+  tasks_transport_http.PatchTaskResponse:
+    properties:
+      author_user_id:
+        type: integer
+      completed:
+        type: boolean
+      completed_at:
+        type: string
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      title:
+        type: string
+      version:
+        type: integer
+    type: object
+  tasks_transport_http.TaskDTOResponse:
+    properties:
+      author_user_id:
+        type: integer
+      completed:
+        type: boolean
+      completed_at:
+        type: string
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      title:
+        type: string
+      version:
+        type: integer
+    type: object
+  users_transport_http.CreateUserRequest:
+    properties:
+      full_name:
+        maxLength: 100
+        minLength: 3
+        type: string
+      phone_number:
+        maxLength: 15
+        minLength: 10
+        type: string
+    required:
+    - full_name
+    type: object
+  users_transport_http.CreateUserResponse:
+    properties:
+      full_name:
+        type: string
+      id:
+        type: integer
+      phone_number:
+        type: string
+      version:
+        type: integer
+    type: object
+  users_transport_http.GetUserResponse:
+    properties:
+      full_name:
+        type: string
+      id:
+        type: integer
+      phone_number:
+        type: string
+      version:
+        type: integer
+    type: object
+  users_transport_http.PatchUserRequest:
+    properties:
+      full_name:
+        example: Максим Максимов
+        type: string
+      phone_number:
+        example: "+79991234567"
+        type: string
+    type: object
+  users_transport_http.PatchUserResponse:
+    properties:
+      full_name:
+        type: string
+      id:
+        type: integer
+      phone_number:
+        type: string
+      version:
+        type: integer
+    type: object
+  users_transport_http.UserDTOResponse:
+    properties:
+      full_name:
+        type: string
+      id:
+        type: integer
+      phone_number:
+        type: string
+      version:
+        type: integer
+    type: object
+info:
+  contact: {}
+  description: Todo Application REST-API scheme
+  title: Golang Todo API
+  version: "1.0"
+paths:
+  /statistics:
+    get:
+      description: Получение статистики по задачам с опциональной фильтрацией по user_id
+        и/или временному периоду
+      parameters:
+      - description: Фильтрация статистики по конкретному пользователю
+        in: query
+        name: user_id
+        type: integer
+      - description: Начало периода в формате YYYY-MM-DD
+        in: query
+        name: from
+        type: string
+      - description: Конец периода в формате YYYY-MM-DD
+        in: query
+        name: to
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/statistics_transport_http.GetStatisticsResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/core_http_response.ErrorResponseBody'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/core_http_response.ErrorResponseBody'
+      summary: Получение статистики
+      tags:
+      - statistics
+  /tasks:
+    get:
+      parameters:
+      - description: ID пользователя
+        in: query
+        name: user_id
+        type: integer
+      - description: Лимит
+        in: query
+        name: limit
+        type: integer
+      - description: Смещение
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/tasks_transport_http.TaskDTOResponse'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/core_http_response.ErrorResponseBody'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/core_http_response.ErrorResponseBody'
+      summary: Список задач
+      tags:
+      - tasks
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Создать задачу
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/tasks_transport_http.CreateTaskRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/tasks_transport_http.TaskDTOResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/core_http_response.ErrorResponseBody'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/core_http_response.ErrorResponseBody'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/core_http_response.ErrorResponseBody'
+      summary: Создать задачу
+      tags:
+      - tasks
+  /tasks/{id}:
+    delete:
+      parameters:
+      - description: ID задачи
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/core_http_response.ErrorResponseBody'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/core_http_response.ErrorResponseBody'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/core_http_response.ErrorResponseBody'
+      summary: Удаление задачи
+      tags:
+      - tasks
+    get:
+      parameters:
+      - description: ID задачи
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/tasks_transport_http.GetTaskResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/core_http_response.ErrorResponseBody'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/core_http_response.ErrorResponseBody'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/core_http_response.ErrorResponseBody'
+      summary: Получение задачи
+      tags:
+      - tasks
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID задачи
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Обновить задачу
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/tasks_transport_http.PatchTaskRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/tasks_transport_http.PatchTaskResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/core_http_response.ErrorResponseBody'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/core_http_response.ErrorResponseBody'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/core_http_response.ErrorResponseBody'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/core_http_response.ErrorResponseBody'
+      summary: Обновить задачу
+      tags:
+      - tasks
+  /users:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/users_transport_http.UserDTOResponse'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/core_http_response.ErrorResponseBody'
+      summary: Список пользователей
+      tags:
+      - users
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Создать пользователя
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/users_transport_http.CreateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/users_transport_http.CreateUserResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/core_http_response.ErrorResponseBody'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/core_http_response.ErrorResponseBody'
+      summary: Создать пользователя
+      tags:
+      - users
+  /users/{id}:
+    delete:
+      parameters:
+      - description: ID пользователя
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/core_http_response.ErrorResponseBody'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/core_http_response.ErrorResponseBody'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/core_http_response.ErrorResponseBody'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/core_http_response.ErrorResponseBody'
+      summary: Удаление пользователя
+      tags:
+      - users
+    get:
+      parameters:
+      - description: ID пользователя
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/users_transport_http.GetUserResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/core_http_response.ErrorResponseBody'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/core_http_response.ErrorResponseBody'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/core_http_response.ErrorResponseBody'
+      summary: Получение пользователя
+      tags:
+      - users
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID пользователя
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Обновить пользователя
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/users_transport_http.PatchUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/users_transport_http.PatchUserResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/core_http_response.ErrorResponseBody'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/core_http_response.ErrorResponseBody'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/core_http_response.ErrorResponseBody'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/core_http_response.ErrorResponseBody'
+      summary: Обновить пользователя
+      tags:
+      - users
+swagger: "2.0"
