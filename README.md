@@ -1,6 +1,7 @@
 # TodoApp
 
 TodoApp — учебный проект на Go для управления задачами. Приложение хранит данные в PostgreSQL и предоставляет REST API, веб-интерфейс и документацию Swagger.
+https://kriffi-todoapp-be3n.onrender.com/
 
 ## Возможности
 
