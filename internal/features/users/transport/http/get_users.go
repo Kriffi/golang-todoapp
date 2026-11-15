@@ -11,6 +11,13 @@ import (
 
 type GetUsersResponse []UserDTOResponse
 
+// GetUsers godoc
+// @Summary Список пользователей
+// @Tags users
+// @Produce json
+// @Success 200 {array} UserDTOResponse
+// @Failure 500 {object} core_http_response.ErrorResponseBody
+// @Router /users [get]
 func (h *UsersHTTPHandler) GetUsers(rw http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	log := core_logger.FromContext(ctx)

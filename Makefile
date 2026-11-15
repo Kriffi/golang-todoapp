@@ -11,13 +11,13 @@ env-down:
 	@docker compose down todoapp-postgres
 
 env-cleanup:
-	@read -p "Очистить все volume файла окружение? Опастность утери данных. [y/n]: " ans; \
+	@read -p "пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ volume пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ? пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ. [y/n]: " ans; \
 	if [ "$$ans" = "y" ] ; then \
 		docker compose down todoapp-postgres && \
 		rm -rf out/pgdata && \
-		echo "Файлы окружение очищены"; \
+		echo "пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ"; \
 	else \
-		echo "Очистка окружения отменена" ; \
+		echo "пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ" ; \
 	fi
 
 env-port-forward:
@@ -29,7 +29,7 @@ env-port-close:
 
 migrate-create:
 	@if [ -z "$(seq)" ]; then \
-		echo "Отсутствует необходимый параметр seq. Пример: make migrate-create seq=init"; \
+		echo "пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ seq. пїЅпїЅпїЅпїЅпїЅпїЅ: make migrate-create seq=init"; \
 		exit 1; \
 	fi; \
 	docker compose run --rm todoapp-postgres-migrate \
@@ -47,7 +47,7 @@ migrate-down:
 	
 migrate-action:
 	@if [ -z "$(action)" ]; then \
-		echo "Отсутствует необходимый параметр action. Пример: make migrate-action action=up"; \
+		echo "пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ action. пїЅпїЅпїЅпїЅпїЅпїЅ: make migrate-action action=up"; \
 		exit 1; \
 	fi; \
 	docker compose run --rm todoapp-postgres-migrate \
@@ -55,8 +55,33 @@ migrate-action:
 		-database postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@todoapp-postgres:5432/${POSTGRES_DB}?sslmode=disable \
 		"$(action)"
 
+logs-cleanup:
+	@read -p "РћС‡РёСЃС‚РёС‚СЊ РІСЃРµ log С„Р°Р№Р»С‹? РћРїР°СЃРЅРѕСЃС‚СЊ СѓС‚РµСЂРё Р»РѕРіРѕРІ. [y/N]: " ans; \
+	if [ "$$ans" = "y" ]; then \
+		rm -rf "${PROJECT_ROOT}/out/logs" && \
+		echo "Р›РѕРіРё РѕС‡РёС‰РµРЅС‹"; \
+	else \
+		echo "РћС‡РёСЃС‚РєР° Р»РѕРіРѕРІ РѕС‚РјРµРЅРµРЅР°"; \
+	fi
+
 todoapp-run:
 	@export LOGGER_FOLDER=${PROJECT_ROOT}/out/logs && \
 	export POSTGRES_HOST=localhost && \
 	go mod tidy && \
-	go run cmd/todoapp/main.go
+	go run ${PROJECT_ROOT}/cmd/todoapp/main.go
+
+todoapp-deploy:
+	@docker compose up -d --build todoapp
+
+todoapp-undeploy:
+	@docker compose down todoapp
+
+swagger-gen:
+	@docker compose run --rm swagger \
+		init \
+		-g cmd/todoapp/main.go \
+		-o docs \
+		--parseInternal
+
+ps:
+	@docker compose ps

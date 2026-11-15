@@ -15,6 +15,17 @@ type CreateTaskRequest struct {
 	AuthorUserID int     `json:"author_user_id" validate:"required"`
 }
 
+// CreateTask godoc
+// @Summary Создать задачу
+// @Tags tasks
+// @Accept json
+// @Produce json
+// @Param request body CreateTaskRequest true "Создать задачу"
+// @Success 201 {object} TaskDTOResponse
+// @Failure 400 {object} core_http_response.ErrorResponseBody
+// @Failure 404 {object} core_http_response.ErrorResponseBody
+// @Failure 500 {object} core_http_response.ErrorResponseBody
+// @Router /tasks [post]
 func (h *TasksHTTPHandler) CreateTask(rw http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	log := core_logger.FromContext(ctx)

@@ -8,6 +8,17 @@ import (
 	core_http_response "github.com/Kriffi/golang-todoapp/internal/core/transport/http/response"
 )
 
+// DeleteUser godoc
+// @Summary Удаление пользователя
+// @Tags users
+// @Produce json
+// @Param id path int true "ID пользователя"
+// @Success 204
+// @Failure 400 {object} core_http_response.ErrorResponseBody
+// @Failure 404 {object} core_http_response.ErrorResponseBody
+// @Failure 409 {object} core_http_response.ErrorResponseBody
+// @Failure 500 {object} core_http_response.ErrorResponseBody
+// @Router /users/{id} [delete]
 func (h *UsersHTTPHandler) DeleteUser(rw http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	log := core_logger.FromContext(ctx)
