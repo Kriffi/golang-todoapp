@@ -3,6 +3,8 @@ package core_pgx_pool
 import (
 	"context"
 	"fmt"
+	"net"
+	"net/url"
 	"time"
 
 	core_postgres_pool "github.com/Kriffi/golang-todoapp/internal/core/repository/postgres/pool"
@@ -18,18 +20,21 @@ func NewPool(
 	ctx context.Context,
 	config Config,
 ) (*Pool, error) {
-	connectionString := fmt.Sprintf(
-		"postgres://%s:%s@%s:%s/%s?sslmode=disable",
-		config.User,
-		config.Password,
-		config.Host,
-		config.Port,
-		config.Database,
-	)
+	connectionString := config.DatabaseURL
+	if connectionString == "" {
+		localURL := url.URL{
+			Scheme:   "postgres",
+			User:     url.UserPassword(config.User, config.Password),
+			Host:     net.JoinHostPort(config.Host, config.Port),
+			Path:     "/" + config.Database,
+			RawQuery: "sslmode=disable",
+		}
+		connectionString = localURL.String()
+	}
 
 	pgxconfig, err := pgxpool.ParseConfig(connectionString)
 	if err != nil {
-		return nil, fmt.Errorf("parse pgxconfig: %w", err)
+		return nil, fmt.Errorf("invalid PostgreSQL connection configuration")
 	}
 
 	pool, err := pgxpool.NewWithConfig(ctx, pgxconfig)
@@ -37,7 +42,10 @@ func NewPool(
 		return nil, fmt.Errorf("create pgxpool: %w", err)
 	}
 
-	if err := pool.Ping(ctx); err != nil {
+	pingCtx, cancel := context.WithTimeout(ctx, config.Timeout)
+	defer cancel()
+	if err := pool.Ping(pingCtx); err != nil {
+		pool.Close()
 		return nil, fmt.Errorf("pgxpool ping: %w", err)
 	}
 

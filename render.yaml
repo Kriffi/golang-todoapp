@@ -1,0 +1,31 @@
+services:
+  - type: web
+    name: kriffi-todoapp
+    runtime: docker
+    region: frankfurt
+    plan: starter
+    dockerfilePath: ./cmd/todoapp/Dockerfile
+    dockerContext: .
+    healthCheckPath: /healthz
+    preDeployCommand: >-
+      case "$DATABASE_URL" in *\?*) separator='&';; *) separator='?';; esac;
+      migrate -path /app/migrations -database "${DATABASE_URL}${separator}search_path=public" up
+    envVars:
+      - key: HTTP_ADDR
+        value: ":10000"
+      - key: HTTP_SHUTDOWN_TIMEOUT
+        value: 30s
+      - key: LOGGER_FOLDER
+        value: /tmp/todoapp-logs
+      - key: LOGGER_LEVEL
+        value: INFO
+      - key: DATABASE_URL
+        fromDatabase:
+          name: kriffi-todoapp-db
+          property: connectionString
+
+databases:
+  - name: kriffi-todoapp-db
+    region: frankfurt
+    plan: 0.1c-256mb
+    ipAllowList: []

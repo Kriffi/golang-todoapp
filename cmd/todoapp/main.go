@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -100,6 +101,20 @@ func main() {
 
 	httpServer.RegisterAPIRouters(apiVersionRouterV1)
 	httpServer.RegisterRoutes(webTransportHTTP.Routes()...)
+	httpServer.RegisterRoutes(core_http_server.Route{
+		Method: http.MethodGet,
+		Path:   "/healthz",
+		Handler: func(w http.ResponseWriter, r *http.Request) {
+			ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
+			defer cancel()
+
+			if err := pool.Ping(ctx); err != nil {
+				http.Error(w, "database unavailable", http.StatusServiceUnavailable)
+				return
+			}
+			w.WriteHeader(http.StatusOK)
+		},
+	})
 	httpServer.RegisterSwagger()
 
 	if err := httpServer.Run(ctx); err != nil {
