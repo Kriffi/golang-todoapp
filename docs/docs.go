@@ -637,6 +637,11 @@ const docTemplate = `{
                 },
                 "title": {
                     "type": "string"
+                },
+                "version": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "example": 1
                 }
             }
         },

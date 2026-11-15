@@ -39,6 +39,7 @@ type TasksService interface {
 		ctx context.Context,
 		id int,
 		patch domain.TaskPatch,
+		expectedVersion *int,
 	) (domain.Task, error)
 }
 

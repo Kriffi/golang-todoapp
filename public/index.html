@@ -72,7 +72,13 @@ input,select,textarea{min-width:0;border:1px solid var(--line);color:var(--text)
 .track{height:8px;background:var(--field);border-radius:10px;overflow:hidden;margin:5px 0 12px}
 .bar{background:var(--green);height:100%;transition:width .2s}
 #remaining-bar{background:var(--gold)}
-.status{color:var(--danger);margin:0 0 12px}
+.status{color:var(--danger);margin:0 0 12px;overflow-wrap:anywhere}
+.read-status{color:var(--muted);margin:0 0 12px}
+#retry-load{margin:0 0 12px}
+#editor-conflict{padding:10px;border:1px solid var(--line);border-radius:8px;margin:0 0 14px}
+#conflict-details{color:var(--muted);margin:0 0 8px;white-space:pre-wrap;overflow-wrap:anywhere}
+@media(max-width:620px){.filters label{flex-wrap:wrap}.filters .reset{margin-left:0}.icon-button{min-width:40px;min-height:40px}.page-heading{flex-wrap:wrap}}
+@media(prefers-reduced-motion:reduce){.bar{transition:none}}
 dialog{width:min(475px,calc(100% - 26px));border-radius:13px;border:1px solid var(--line);background:var(--card);color:var(--text);padding:21px}
 dialog::backdrop{background:#04070ca0}
 dialog h2{margin:0 0 13px}
@@ -97,6 +103,8 @@ dialog footer{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}
 </aside>
 <main>
   <p id="status" class="status" role="alert" hidden></p>
+  <p id="loading" class="read-status" role="status" hidden>Загрузка…</p>
+  <button id="retry-load" type="button" hidden>Повторить загрузку</button>
   <section id="tasks">
     <header class="page-heading"><h1>Задачи</h1><button class="primary" id="new-task" type="button">＋ Новая задача</button></header>
     <form class="filters" id="task-filters">
@@ -155,6 +163,10 @@ dialog footer{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}
       <label>Телефон <input name="phone" type="tel" pattern="\+[0-9]{9,14}" placeholder="+79991234567"></label>
     </div>
     <p id="editor-error" class="status" role="alert" hidden></p>
+    <div id="editor-conflict" hidden>
+      <p id="conflict-details"></p>
+      <button id="reload-task" type="button">Загрузить актуальную версию</button>
+    </div>
     <footer><button id="cancel-edit" type="button">Отмена</button><button id="save-edit" class="primary" type="submit">Сохранить</button></footer>
   </form>
 </dialog>
@@ -179,7 +191,8 @@ let currentPage = "tasks";
 let users = [];
 let editing;
 let deleting;
-let refreshNumber = 0;
+let currentRead;
+let usersLoaded = false;
 let toastTimer;
 
 function element(tag, className, text) {
@@ -189,15 +202,21 @@ function element(tag, className, text) {
   return node;
 }
 
-async function api(path, method = "GET", body) {
+async function api(path, method = "GET", body, signal) {
   const response = await fetch("/api/v1" + path, {
     method,
+    signal,
     headers: body === undefined ? undefined : {"Content-Type": "application/json"},
     body: body === undefined ? undefined : JSON.stringify(body)
   });
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
-    throw new Error(error.error || error.message || "Ошибка HTTP " + response.status);
+    const message = response.status >= 500
+      ? "Сервер временно недоступен. Попробуй ещё раз."
+      : error.error || error.message || "Ошибка HTTP " + response.status;
+    const failure = new Error(message);
+    failure.status = response.status;
+    throw failure;
   }
   if (response.status !== 204) return response.json();
 }
@@ -244,11 +263,16 @@ function taskCard(task) {
   toggle.addEventListener("click", async () => {
     toggle.disabled = true;
     try {
-      await api("/tasks/" + task.id, "PATCH", {completed: !task.completed});
+      await api("/tasks/" + task.id, "PATCH", {completed: !task.completed, version: task.version});
       notify(task.completed ? "Задача возвращена в работу" : "Задача выполнена");
       await refresh();
     } catch (error) {
-      showError("status", error);
+      if (error.status === 409 || error.status === 404) {
+        await refresh();
+        showError("status", new Error("Задача изменилась в другом окне. Список обновлён."));
+      } else {
+        showError("status", error);
+      }
     } finally {
       toggle.disabled = false;
     }
@@ -317,33 +341,27 @@ function showPageControls(kind, previous, next) {
   pages.replaceChildren(backButton, element("span", "", "Страница " + (pageIndex[kind] + 1)), forwardButton);
 }
 
-async function loadList(kind, requestNumber) {
+async function loadList(kind, signal) {
   const isTasks = kind === "tasks";
   const prefix = isTasks ? "task" : "user";
   const limit = Number(byId(prefix + "-limit").value);
   const offset = pageIndex[kind] * limit;
-  const query = new URLSearchParams({limit, offset});
+  const query = new URLSearchParams({limit: limit + 1, offset});
   if (isTasks && byId("task-owner").value) query.set("user_id", byId("task-owner").value);
-  const result = (await api("/" + kind + "?" + query)) || [];
-  if (requestNumber !== refreshNumber) return;
+  const result = (await api("/" + kind + "?" + query, "GET", undefined, signal)) || [];
+  if (signal.aborted) return;
   if (result.length === 0 && pageIndex[kind] > 0) {
     pageIndex[kind]--;
-    return loadList(kind, requestNumber);
+    return loadList(kind, signal);
   }
-  let next = false;
-  if (result.length === limit) {
-    query.set("limit", "1");
-    query.set("offset", String(offset + limit));
-    next = ((await api("/" + kind + "?" + query)) || []).length > 0;
-  }
-  if (requestNumber !== refreshNumber) return;
+  const next = result.length > limit;
   const list = byId(prefix + "-list");
-  list.replaceChildren(...result.map(isTasks ? taskCard : userCard));
+  list.replaceChildren(...result.slice(0, limit).map(isTasks ? taskCard : userCard));
   if (result.length === 0) list.append(element("p", "empty", isTasks ? "Задач пока нет" : "Пользователей пока нет"));
   showPageControls(kind, pageIndex[kind] > 0, next);
 }
 
-async function loadStatistics(requestNumber) {
+async function loadStatistics(signal) {
   const query = new URLSearchParams();
   const owner = byId("stats-owner").value;
   const from = byId("stats-from").value;
@@ -351,8 +369,8 @@ async function loadStatistics(requestNumber) {
   if (owner) query.set("user_id", owner);
   if (from) query.set("from", from);
   if (to) query.set("to", to);
-  const result = await api("/statistics?" + query);
-  if (requestNumber !== refreshNumber) return;
+  const result = await api("/statistics?" + query, "GET", undefined, signal);
+  if (signal.aborted) return;
   const {tasks_created: created, tasks_completed: completed, tasks_completed_rate: rate, tasks_average_completion_time: average} = result;
   const fraction = rate ?? 0;
   const remainingRate = created === 0 ? 0 : 100 - fraction;
@@ -367,21 +385,37 @@ async function loadStatistics(requestNumber) {
 }
 
 async function refresh() {
-  const requestNumber = ++refreshNumber;
+  currentRead?.abort();
+  currentRead = new AbortController();
+  const {signal} = currentRead;
   const page = currentPage;
   showError("status");
+  byId("retry-load").hidden = true;
+  byId("loading").hidden = true;
+  const indicator = setTimeout(() => { byId("loading").hidden = false; }, 250);
   try {
-    if (page === "statistics") await loadStatistics(requestNumber);
-    else await loadList(page, requestNumber);
+    if (!usersLoaded) await reloadUsers(signal);
+    if (page === "statistics") await loadStatistics(signal);
+    else await loadList(page, signal);
   } catch (error) {
-    if (requestNumber === refreshNumber) showError("status", error);
+    if (!signal.aborted) {
+      showError("status", error instanceof TypeError ? new Error("Не удалось связаться с сервером.") : error);
+      byId("retry-load").hidden = false;
+    }
+  } finally {
+    clearTimeout(indicator);
+    if (!signal.aborted) byId("loading").hidden = true;
   }
 }
+
+byId("retry-load").onclick = refresh;
 
 function openEditor(kind, record) {
   editing = {kind, record};
   const isTask = kind === "tasks";
   editorForm.reset();
+  byId("editor-conflict").hidden = true;
+  byId("save-edit").disabled = false;
   showError("editor-error");
   byId("editor-title").textContent = isTask ? (record ? "Редактировать задачу" : "Новая задача") : (record ? "Редактировать пользователя" : "Новый пользователь");
   byId("task-fields").hidden = !isTask;
@@ -403,10 +437,36 @@ function openEditor(kind, record) {
   editor.showModal();
 }
 
-async function reloadUsers() {
-  users = (await api("/users")) || [];
+async function reloadUsers(signal) {
+  const result = await api("/users", "GET", undefined, signal);
+  if (signal?.aborted) return;
+  users = result || [];
+  usersLoaded = true;
   syncUsers();
 }
+
+byId("reload-task").onclick = async () => {
+  const reloadButton = byId("reload-task");
+  const record = editing.record;
+  reloadButton.disabled = true;
+  try {
+    const latest = await api("/tasks/" + record.id);
+    if (editing.record !== record || !editor.open) return;
+    if (fields.title.value === record.title) fields.title.value = latest.title;
+    if (fields.description.value === (record.description ?? "")) fields.description.value = latest.description ?? "";
+    editing.record = latest;
+    byId("conflict-details").textContent = "Актуальная версия v" + latest.version + ": " + latest.title +
+      (latest.description ? "\n" + latest.description : "");
+    showError("editor-error");
+    byId("save-edit").disabled = false;
+  } catch (error) {
+    if (editing.record === record && editor.open) {
+      showError("editor-error", error.status === 404 ? new Error("Другой клиент удалил задачу.") : error);
+    }
+  } finally {
+    reloadButton.disabled = false;
+  }
+};
 
 editorForm.addEventListener("submit", async event => {
   event.preventDefault();
@@ -415,20 +475,35 @@ editorForm.addEventListener("submit", async event => {
   const body = task
     ? {title: fields.title.value.trim(), description: fields.description.value.trim() || null}
     : {full_name: fields.fullName.value.trim(), phone_number: fields.phone.value.trim() || null};
+  if (task && record) body.version = record.version;
   if (task && !record) body.author_user_id = Number(fields.author.value);
-  byId("save-edit").disabled = true;
+  const saveButton = byId("save-edit");
+  if (saveButton.disabled) return;
+  saveButton.disabled = true;
+  saveButton.textContent = "Сохраняю…";
+  byId("cancel-edit").disabled = true;
+  let conflict = false;
   try {
     await api("/" + kind + (record ? "/" + record.id : ""), record ? "PATCH" : "POST", body);
   } catch (error) {
-    showError("editor-error", error);
+    conflict = task && Boolean(record) && error.status === 409;
+    if (conflict) {
+      byId("editor-conflict").hidden = false;
+      byId("conflict-details").textContent = "Задачу изменили в другом окне. Твои правки сохранены в этой форме.";
+      showError("editor-error");
+    } else {
+      showError("editor-error", error);
+    }
     return;
   } finally {
-    byId("save-edit").disabled = false;
+    saveButton.disabled = conflict;
+    saveButton.textContent = "Сохранить";
+    byId("cancel-edit").disabled = false;
   }
   editor.close();
   notify(task ? "Задача сохранена" : "Пользователь сохранён");
   try {
-    if (!task) await reloadUsers();
+    if (!task) usersLoaded = false;
     await refresh();
   } catch (error) {
     showError("status", error);
@@ -450,13 +525,16 @@ byId("delete-form").addEventListener("submit", async event => {
   deleteDialog.close();
   notify(kind === "tasks" ? "Задача удалена" : "Пользователь удалён");
   try {
-    if (kind === "users") await reloadUsers();
+    if (kind === "users") usersLoaded = false;
     await refresh();
   } catch (error) {
     showError("status", error);
   }
 });
 
+editor.addEventListener("cancel", event => {
+  if (byId("cancel-edit").disabled) event.preventDefault();
+});
 byId("cancel-edit").onclick = () => editor.close();
 byId("cancel-delete").onclick = () => deleteDialog.close();
 byId("new-task").onclick = () => openEditor("tasks");
@@ -498,7 +576,7 @@ byId("theme").onclick = () => {
   localStorage.setItem("todoapp-theme", theme);
 };
 
-reloadUsers().then(refresh).catch(error => showError("status", error));
+refresh();
 </script>
 </body>
 </html>

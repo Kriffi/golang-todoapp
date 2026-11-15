@@ -12,12 +12,17 @@ import (
 )
 
 type PatchTaskRequest struct {
+	Version     *int                             `json:"version,omitempty" minimum:"1" example:"1"`
 	Title       core_http_types.Nullable[string] `json:"title" swaggertype:"string"`
 	Description core_http_types.Nullable[string] `json:"description" swaggertype:"string"`
 	Completed   core_http_types.Nullable[bool]   `json:"completed" swaggertype:"boolean"`
 }
 
 func (r *PatchTaskRequest) Validate() error {
+	if r.Version != nil && *r.Version < 1 {
+		return fmt.Errorf("'Version' must be positive")
+	}
+
 	if r.Title.Set {
 		if r.Title.Value == nil {
 			return fmt.Errorf("'Title' can't be NULL")
@@ -89,7 +94,7 @@ func (h *TasksHTTPHandler) PatchTask(rw http.ResponseWriter, r *http.Request) {
 
 	taskPatch := taskPatchFromRequest(request)
 
-	taskDomain, err := h.tasksService.PatchTask(ctx, taskID, taskPatch)
+	taskDomain, err := h.tasksService.PatchTask(ctx, taskID, taskPatch, request.Version)
 	if err != nil {
 		responseHandler.ErrorResponse(
 			err,
