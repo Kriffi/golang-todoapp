@@ -21,6 +21,7 @@ COPY --from=builder /app/cmd/todoapp/exe /app
 COPY --from=builder /app/public /app/public
 COPY --from=migrations /usr/local/bin/migrate /usr/local/bin/migrate
 COPY --from=builder /app/migrations /app/migrations
+COPY --from=builder --chmod=0755 /app/cmd/todoapp/start-render.sh /app/start-render.sh
 ENV PROJECT_ROOT=/app
 
 CMD ["/app/exe"]
