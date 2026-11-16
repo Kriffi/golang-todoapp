@@ -3,117 +3,47 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Список дел</title>
-<style>
-:root{color-scheme:dark;--bg:#0e1117;--side:#151a24;--card:#171d27;--field:#202633;--line:#242b38;--text:#edf1f7;--muted:#a0aabb;--accent:#57a5f6;--accent-ink:#061321;--chosen:#1b2b40;--green:#61cf8b;--gold:#e5b251;--purple:#ae87f4;--danger:#ff8c98}
-:root[data-theme=light]{color-scheme:light;--bg:#f4f6f8;--side:#fff;--card:#fff;--field:#eef0f3;--line:#e3e7ed;--text:#1b2431;--muted:#566171;--accent:#0067d7;--accent-ink:#fff;--chosen:#e5f1fd;--green:#168348;--gold:#956500;--purple:#7356c1;--danger:#a7273d}
-*{box-sizing:border-box}
-[hidden]{display:none!important}
-body{margin:0;min-height:100svh;background:var(--bg);color:var(--text);font:15px/1.45 Inter,system-ui,sans-serif}
-button,input,select,textarea{font:inherit}
-button{cursor:pointer;border:1px solid var(--line);border-radius:8px;background:var(--field);color:var(--text);padding:9px 15px;font-weight:650}
-button:disabled{cursor:default;opacity:.45}
-button:hover:not(:disabled){filter:brightness(1.15)}
-button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-.primary{background:var(--accent);color:var(--accent-ink);border-color:transparent}
-.icon-button{border:0;background:transparent;color:var(--muted);padding:5px 9px;white-space:nowrap}
-.danger{color:var(--danger)}
-aside{position:fixed;inset:0 auto 0 0;width:224px;padding:23px 14px;background:var(--side);border-right:1px solid var(--line)}
-.brand{display:flex;align-items:center;gap:10px;margin:0 4px 28px;font-weight:750;font-size:18px}
-.logo{display:grid;place-items:center;width:35px;height:35px;border-radius:9px;background:linear-gradient(140deg,#537ff1,#8c80ef);color:#fff;font-size:24px;line-height:1}
-.version,.chip{border-radius:999px;background:var(--field);color:var(--muted);font-size:11px;padding:3px 7px;white-space:nowrap}
-.nav-label{display:block;margin:0 9px 8px;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.09em;font-weight:700}
-nav{display:grid;gap:4px}
-nav button{width:100%;background:transparent;border:0;text-align:left;color:var(--muted);padding:8px 10px}
-nav button[aria-current=page]{background:var(--chosen);color:var(--accent)}
-.nav-icon{display:inline-block;width:22px}
-#theme{display:flex;width:100%;align-items:center;justify-content:space-between;margin-top:23px;padding:8px 10px;color:var(--muted);font-size:13px}
-.switch{width:30px;height:16px;background:var(--bg);border-radius:12px;padding:2px;display:flex}
-.switch::after{content:"";display:block;width:12px;height:12px;border-radius:50%;background:var(--muted)}
-[data-theme=light] .switch{background:var(--accent);justify-content:flex-end}
-[data-theme=light] .switch::after{background:white}
-main{margin-left:224px;padding:32px 38px;max-width:1540px}
-.page-heading{display:flex;justify-content:space-between;align-items:center;gap:16px;margin:0 0 16px}
-h1{margin:0;font-size:24px;line-height:1.2}
-.filters,.record,.panel,.metric{background:var(--card);border:1px solid var(--line);border-radius:10px}
-.filters{display:flex;flex-wrap:wrap;gap:12px;align-items:center;padding:13px 16px;margin-bottom:16px}
-label{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:13px}
-input,select,textarea{min-width:0;border:1px solid var(--line);color:var(--text);background:var(--field);border-radius:7px;padding:7px 9px}
-.filters .owner{width:min(225px,45vw)}
-#task-limit,#user-limit{width:74px}
-.filters .reset{margin-left:auto}
-.records{display:grid;gap:10px}
-.record{display:flex;align-items:flex-start;gap:12px;padding:15px 17px}
-.record:hover,.record:focus-within{border-color:var(--accent)}
-.record-title,.description{margin:0;overflow-wrap:anywhere}
-.record-title{font-size:15px}
-.record.done .record-title{text-decoration:line-through;color:var(--muted)}
-.description{font-size:13px;color:var(--muted);margin:3px 0}
-.record-content{min-width:0;flex:1}
-.tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px}
-.chip.good{color:var(--green)}
-.chip.pending{color:var(--gold)}
-.chip.duration{color:var(--accent)}
-.toggle{width:21px;height:21px;flex:0 0 21px;border:2px solid var(--line);background:none;border-radius:50%;padding:0;line-height:17px}
-.done .toggle{background:#22a75b;border-color:#22a75b;color:white;box-shadow:0 0 10px #22a75b65}
-.actions{display:flex;gap:1px}
-.avatar{display:grid;place-items:center;flex:0 0 34px;height:34px;border-radius:50%;background:var(--chosen);color:var(--accent);font-weight:750;font-size:13px}
-.pages{display:flex;justify-content:flex-end;align-items:center;gap:9px;margin-top:14px;color:var(--muted)}
-.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:16px}
-.metric{--metric:var(--accent);border-top:3px solid var(--metric);padding:16px;min-height:138px}
-.metric:nth-child(2){--metric:var(--green)}.metric:nth-child(3){--metric:var(--gold)}.metric:nth-child(4){--metric:var(--purple)}
-.metric-icon{display:grid;place-items:center;width:30px;height:30px;border-radius:7px;background:var(--field);color:var(--metric);margin-bottom:9px}
-.metric-title,.panel h2{display:block;color:var(--muted);font-size:11px;letter-spacing:.04em;text-transform:uppercase}
-.metric strong{display:block;overflow-wrap:anywhere;color:var(--metric);font-size:26px;margin:3px 0}
-.metric small,.panel small,.empty{color:var(--muted)}
-.panel{padding:18px}
-.panel h2{margin:0 0 10px}
-.progress-label{display:flex;justify-content:space-between}
-.track{height:8px;background:var(--field);border-radius:10px;overflow:hidden;margin:5px 0 12px}
-.bar{background:var(--green);height:100%;transition:width .2s}
-#remaining-bar{background:var(--gold)}
-.status{color:var(--danger);margin:0 0 12px;overflow-wrap:anywhere}
-.read-status{color:var(--muted);margin:0 0 12px}
-#retry-load{margin:0 0 12px}
-#editor-conflict{padding:10px;border:1px solid var(--line);border-radius:8px;margin:0 0 14px}
-#conflict-details{color:var(--muted);margin:0 0 8px;white-space:pre-wrap;overflow-wrap:anywhere}
-@media(max-width:620px){.filters label{flex-wrap:wrap}.filters .reset{margin-left:0}.icon-button{min-width:40px;min-height:40px}.page-heading{flex-wrap:wrap}}
-@media(prefers-reduced-motion:reduce){.bar{transition:none}}
-dialog{width:min(475px,calc(100% - 26px));border-radius:13px;border:1px solid var(--line);background:var(--card);color:var(--text);padding:21px}
-dialog::backdrop{background:#04070ca0}
-dialog h2{margin:0 0 13px}
-dialog label{display:grid;gap:5px;margin-bottom:12px}
-dialog textarea{resize:vertical;min-height:84px}
-dialog footer{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}
-#toast{position:fixed;bottom:22px;right:22px;max-width:calc(100vw - 44px);padding:10px 14px;border:1px solid var(--green);border-radius:9px;background:var(--card);color:var(--green)}
-@media(max-width:900px){main{padding:25px 22px}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:620px){aside{position:static;width:auto;padding:12px;border-right:0;border-bottom:1px solid var(--line)}.brand{margin:0 0 10px}.nav-label{display:none}nav{display:flex;gap:4px}nav button{flex:1;padding:8px 4px;text-align:center}#theme{width:auto;gap:9px;margin-top:10px}main{margin-left:0;padding:18px 12px}.actions{flex-direction:column}.metric{padding:12px}.page-heading h1{font-size:21px}}
-</style>
+<title>TodoApp · Задачи</title>
+<link rel="stylesheet" href="/assets/todo.css">
 </head>
 <body>
-<aside>
-  <div class="brand"><span class="logo" aria-hidden="true">☑</span> TodoApp <span class="version">v1</span></div>
-  <span class="nav-label">Навигация</span>
+<aside class="sidebar">
+  <a class="brand" href="/" aria-label="TodoApp, главная">
+    <span class="logo" aria-hidden="true"></span><span>TodoApp</span>
+  </a>
   <nav aria-label="Разделы">
-    <button type="button" data-page="tasks" aria-current="page"><span class="nav-icon" aria-hidden="true">☑</span>Задачи</button>
-    <button type="button" data-page="users"><span class="nav-icon" aria-hidden="true">♙</span>Пользователи</button>
-    <button type="button" data-page="statistics"><span class="nav-icon" aria-hidden="true">▥</span>Статистика</button>
+    <button type="button" data-page="tasks" aria-current="page"><span class="nav-icon task-icon" aria-hidden="true"></span>Задачи</button>
+    <button type="button" data-page="users"><span class="nav-icon user-icon" aria-hidden="true"></span>Пользователи</button>
+    <button type="button" data-page="statistics"><span class="nav-icon stats-icon" aria-hidden="true"></span>Статистика</button>
   </nav>
-  <button id="theme" type="button" role="switch" aria-checked="false"><span id="theme-label">☾ Dark mode</span><span class="switch" aria-hidden="true"></span></button>
+  <button id="theme" type="button" role="switch" aria-label="Тёмная тема" aria-checked="true">
+    <span class="theme-icon" aria-hidden="true">◐</span><span class="theme-label">Тёмная тема</span><span class="switch" aria-hidden="true"></span>
+  </button>
 </aside>
 <main>
   <p id="status" class="status" role="alert" hidden></p>
   <p id="loading" class="read-status" role="status" hidden>Загрузка…</p>
   <button id="retry-load" type="button" hidden>Повторить загрузку</button>
   <section id="tasks">
-    <header class="page-heading"><h1>Задачи</h1><button class="primary" id="new-task" type="button">＋ Новая задача</button></header>
-    <form class="filters" id="task-filters">
-      <label>Пользователь <select id="task-owner" class="owner"></select></label>
-      <label>На странице <select id="task-limit"><option>10</option><option selected>20</option><option>50</option><option>100</option></select></label>
-      <button class="reset" type="reset">Сбросить</button>
-    </form>
-    <div class="records" id="task-list" aria-live="polite"></div>
-    <div class="pages" id="task-pages" hidden></div>
+    <header class="task-hero">
+      <div class="hero-content">
+        <h1>Задачи</h1>
+        <button class="primary" id="new-task" type="button">＋ Новая задача</button>
+      </div>
+    </header>
+    <div class="task-layout">
+      <form class="filters" id="task-filters">
+        <h2 class="subheading">Фильтры</h2>
+        <label>Пользователь <select id="task-owner" class="owner"></select></label>
+        <label>На странице <select id="task-limit"><option>10</option><option selected>20</option><option>50</option><option>100</option></select></label>
+        <button class="reset" type="reset">Сбросить</button>
+      </form>
+      <div class="task-board">
+        <h2 class="subheading">Список задач</h2>
+        <div class="records" id="task-list" aria-live="polite"></div>
+        <div class="pages" id="task-pages" hidden></div>
+      </div>
+    </div>
   </section>
   <section id="users" hidden>
     <header class="page-heading"><h1>Пользователи</h1><button class="primary" id="new-user" type="button">＋ Новый пользователь</button></header>
@@ -150,7 +80,7 @@ dialog footer{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}
     </div>
   </section>
 </main>
-<dialog id="editor">
+<dialog id="editor" aria-labelledby="editor-title">
   <form id="editor-form">
     <h2 id="editor-title"></h2>
     <div id="task-fields">
@@ -170,8 +100,8 @@ dialog footer{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}
     <footer><button id="cancel-edit" type="button">Отмена</button><button id="save-edit" class="primary" type="submit">Сохранить</button></footer>
   </form>
 </dialog>
-<dialog id="confirm-delete">
-  <form id="delete-form"><h2>Удаление</h2><p id="delete-message"></p>
+<dialog id="confirm-delete" aria-labelledby="delete-title">
+  <form id="delete-form"><h2 id="delete-title">Удаление</h2><p id="delete-message"></p>
   <p id="delete-error" class="status" role="alert" hidden></p>
   <footer><button id="cancel-delete" type="button">Отмена</button><button class="danger" id="apply-delete" type="submit">Удалить</button></footer></form>
 </dialog>
@@ -184,9 +114,9 @@ const editorForm = byId("editor-form");
 const fields = editorForm.elements;
 const deleteDialog = byId("confirm-delete");
 const pageIndex = {tasks: 0, users: 0};
-const dateFormat = new Intl.DateTimeFormat("en-US", {year: "numeric", month: "short", day: "numeric"});
+const dateFormat = new Intl.DateTimeFormat("ru-RU", {year: "numeric", month: "short", day: "numeric"});
 const elapsedFormat = new Intl.NumberFormat("ru-RU");
-const timeFormat = new Intl.DateTimeFormat("en-US", {month: "short", day: "numeric", hour: "2-digit", minute: "2-digit"});
+const timeFormat = new Intl.DateTimeFormat("ru-RU", {month: "short", day: "numeric", hour: "2-digit", minute: "2-digit"});
 let currentPage = "tasks";
 let users = [];
 let editing;
@@ -564,10 +494,9 @@ for (const button of nav) {
 }
 
 function setTheme(theme) {
-  const light = theme === "light";
+  const dark = theme === "dark";
   document.documentElement.dataset.theme = theme;
-  byId("theme").setAttribute("aria-checked", String(light));
-  byId("theme-label").textContent = light ? "☀ Light mode" : "☾ Dark mode";
+  byId("theme").setAttribute("aria-checked", String(dark));
 }
 setTheme(localStorage.getItem("todoapp-theme") === "light" ? "light" : "dark");
 byId("theme").onclick = () => {

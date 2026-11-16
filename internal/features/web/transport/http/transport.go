@@ -2,6 +2,8 @@ package web_transport_http
 
 import (
 	"net/http"
+	"os"
+	"path/filepath"
 
 	core_http_server "github.com/Kriffi/golang-todoapp/internal/core/transport/http/server"
 )
@@ -29,5 +31,21 @@ func (h *WebHTTPHandler) Routes() []core_http_server.Route {
 			Path:    "/{$}",
 			Handler: h.GetMainPage,
 		},
+		{
+			Method:  http.MethodGet,
+			Path:    "/assets/todo.css",
+			Handler: publicAsset("todo.css"),
+		},
+		{
+			Method:  http.MethodGet,
+			Path:    "/assets/todo-hero.webp",
+			Handler: publicAsset("todo-hero.webp"),
+		},
+	}
+}
+
+func publicAsset(name string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, filepath.Join(os.Getenv("PROJECT_ROOT"), "public", name))
 	}
 }
