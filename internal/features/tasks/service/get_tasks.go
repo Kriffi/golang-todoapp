@@ -13,6 +13,7 @@ func (s *TasksService) GetTasks(
 	userID *int,
 	limit *int,
 	offset *int,
+	overdue bool,
 ) ([]domain.Task, error) {
 	if limit != nil && *limit < 0 {
 		return nil, fmt.Errorf(
@@ -28,7 +29,7 @@ func (s *TasksService) GetTasks(
 		)
 	}
 
-	tasks, err := s.tasksRepository.GetTasks(ctx, userID, limit, offset)
+	tasks, err := s.tasksRepository.GetTasks(ctx, userID, limit, offset, overdue)
 	if err != nil {
 		return nil, fmt.Errorf("get tasks from repository: %w", err)
 	}

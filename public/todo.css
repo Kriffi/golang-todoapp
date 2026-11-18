@@ -264,6 +264,7 @@ input, select, textarea {
   max-width: 100%;
 }
 .chip.good { color: var(--green); background: var(--green-bg); }
+.chip.overdue { color: var(--danger); border: 1px solid currentColor; }
 .chip.pending { color: var(--amber); background: var(--amber-bg); }
 .chip.duration { color: var(--accent); background: var(--selected); }
 .toggle {

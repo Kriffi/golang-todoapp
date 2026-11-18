@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"net/http"
 
+	core_errors "github.com/Kriffi/golang-todoapp/internal/core/errors"
+
 	core_logger "github.com/Kriffi/golang-todoapp/internal/core/logger"
 	core_http_request "github.com/Kriffi/golang-todoapp/internal/core/transport/http/request"
 	core_http_response "github.com/Kriffi/golang-todoapp/internal/core/transport/http/response"
@@ -18,6 +20,7 @@ type GetTasksResponse []TaskDTOResponse
 // @Param user_id query int false "ID пользователя"
 // @Param limit query int false "Лимит"
 // @Param offset query int false "Смещение"
+// @Param overdue query bool false "Только незавершённые задачи со сроком раньше текущей даты UTC"
 // @Success 200 {array} TaskDTOResponse
 // @Failure 400 {object} core_http_response.ErrorResponseBody
 // @Failure 500 {object} core_http_response.ErrorResponseBody
@@ -37,7 +40,16 @@ func (h *TasksHTTPHandler) GetTasks(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tasksDomains, err := h.tasksService.GetTasks(ctx, userID, limit, offset)
+	overdueValue := r.URL.Query().Get("overdue")
+	if overdueValue != "" && overdueValue != "false" && overdueValue != "true" {
+		responseHandler.ErrorResponse(
+			fmt.Errorf("overdue must be true or false: %w", core_errors.ErrInvalidArgument),
+			"invalid overdue filter",
+		)
+		return
+	}
+
+	tasksDomains, err := h.tasksService.GetTasks(ctx, userID, limit, offset, overdueValue == "true")
 	if err != nil {
 		responseHandler.ErrorResponse(
 			err,

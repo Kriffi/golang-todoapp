@@ -12,32 +12,28 @@ func (r *TasksRepository) GetTasks(
 	userID *int,
 	limit *int,
 	offset *int,
+	overdue bool,
 ) ([]domain.Task, error) {
 	ctx, cancel := context.WithTimeout(ctx, r.pool.OpTimeout())
 	defer cancel()
 
 	query := `
- SELECT id, version, title, description, completed, created_at, completed_at, author_user_id
+ SELECT id, version, title, description, completed, created_at, completed_at, author_user_id, to_char(due_date, 'YYYY-MM-DD')
  FROM todoapp.tasks
- %s
+ WHERE ($3::int IS NULL OR author_user_id=$3)
+   AND (NOT $4::boolean OR (NOT completed AND due_date < (CURRENT_TIMESTAMP AT TIME ZONE 'UTC')::date))
  ORDER BY id ASC
  LIMIT $1
  OFFSET $2
  `
 
-	args := []any{limit, offset}
-
-	if userID != nil {
-		query = fmt.Sprintf(query, "WHERE author_user_id=$3")
-		args = append(args, userID)
-	} else {
-		query = fmt.Sprintf(query, "")
-	}
-
 	rows, err := r.pool.Query(
 		ctx,
 		query,
-		args...,
+		limit,
+		offset,
+		userID,
+		overdue,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("select tasks: %w", err)
@@ -58,6 +54,7 @@ func (r *TasksRepository) GetTasks(
 			&taskModel.CreatedAt,
 			&taskModel.CompletedAt,
 			&taskModel.AuthorUserID,
+			&taskModel.DueDate,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("scan tasks: %w", err)

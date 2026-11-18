@@ -7,8 +7,15 @@ https://kriffi-todoapp-be3n.onrender.com/
 
 - Создавать, редактировать и удалять задачи и пользователей.
 - Отмечать задачи выполненными и возвращать их в работу.
+- Задавать необязательный срок и фильтровать просроченные задачи.
 - Фильтровать задачи по пользователю, просматривать статистику по пользователю и периоду.
 - Вызывать API из Swagger UI.
+
+## Сроки задач в API
+
+- При создании и редактировании можно передать `due_date` в формате `YYYY-MM-DD`.
+- В `PATCH` пропущенное поле сохраняет срок, а `null` очищает его. У старых задач срок изначально отсутствует.
+- `GET /api/v1/tasks?overdue=true` отбирает только незавершённые задачи со сроком раньше текущей даты UTC. Фильтр применяется до пагинации.
 
 ## Скриншоты
 
@@ -59,12 +66,15 @@ docker compose exec todoapp-postgres pg_isready -h 127.0.0.1
 После ответа `accepting connections` выполни миграции внутри контейнера. Команда использует уже переданные контейнеру переменные `POSTGRES_USER` и `POSTGRES_DB`.
 
 ```powershell
-Get-Content -Raw migrations/000001_init.up.sql |
-  docker compose exec -T todoapp-postgres sh -c 'psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
+Get-ChildItem migrations/*.up.sql | Sort-Object Name | ForEach-Object {
+  Get-Content -Raw -LiteralPath $_.FullName |
+    docker compose exec -T todoapp-postgres sh -c 'psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
+  if ($LASTEXITCODE -ne 0) { throw "Миграция $($_.Name) не прошла" }
+}
 docker compose up -d --build todoapp
 ```
 
-Запускай этот SQL только на новой базе. Если хочешь использовать учёт версий миграций, используй `make migrate-up`.
+Этот блок предназначен для новой базы. Если ты уже применил первую миграцию вручную, передай в ту же команду `psql` только `migrations/000002_task_due_date.up.sql`. Для базы с учётом версий миграций используй `make migrate-up`.
 
 </details>
 

@@ -23,6 +23,7 @@ type TasksService interface {
 		userID *int,
 		limit *int,
 		offset *int,
+		overdue bool,
 	) ([]domain.Task, error)
 
 	GetTask(

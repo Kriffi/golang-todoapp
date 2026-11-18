@@ -94,6 +94,12 @@ const docTemplate = `{
                         "description": "Смещение",
                         "name": "offset",
                         "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Только незавершённые задачи со сроком раньше текущей даты UTC",
+                        "name": "overdue",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -590,6 +596,11 @@ const docTemplate = `{
                     "maxLength": 1000,
                     "minLength": 1
                 },
+                "due_date": {
+                    "type": "string",
+                    "format": "date",
+                    "example": "2026-12-01"
+                },
                 "title": {
                     "type": "string",
                     "maxLength": 100,
@@ -615,6 +626,11 @@ const docTemplate = `{
                 "description": {
                     "type": "string"
                 },
+                "due_date": {
+                    "type": "string",
+                    "format": "date",
+                    "example": "2026-12-01"
+                },
                 "id": {
                     "type": "integer"
                 },
@@ -634,6 +650,11 @@ const docTemplate = `{
                 },
                 "description": {
                     "type": "string"
+                },
+                "due_date": {
+                    "type": "string",
+                    "format": "date",
+                    "example": "2026-12-01"
                 },
                 "title": {
                     "type": "string"
@@ -663,6 +684,11 @@ const docTemplate = `{
                 "description": {
                     "type": "string"
                 },
+                "due_date": {
+                    "type": "string",
+                    "format": "date",
+                    "example": "2026-12-01"
+                },
                 "id": {
                     "type": "integer"
                 },
@@ -691,6 +717,11 @@ const docTemplate = `{
                 },
                 "description": {
                     "type": "string"
+                },
+                "due_date": {
+                    "type": "string",
+                    "format": "date",
+                    "example": "2026-12-01"
                 },
                 "id": {
                     "type": "integer"

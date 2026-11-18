@@ -18,7 +18,7 @@ func (r *TasksRepository) GetTask(
 	defer cancel()
 
 	query := `
-	SELECT id, version, title, description, completed, created_at, completed_at, author_user_id
+	SELECT id, version, title, description, completed, created_at, completed_at, author_user_id, to_char(due_date, 'YYYY-MM-DD')
 	FROM todoapp.tasks
 	WHERE id=$1;
 	`
@@ -36,6 +36,7 @@ func (r *TasksRepository) GetTask(
 		&taskModel.CreatedAt,
 		&taskModel.CompletedAt,
 		&taskModel.AuthorUserID,
+		&taskModel.DueDate,
 	)
 	if err != nil {
 		if errors.Is(err, core_postgres_pool.ErrNoRows) {

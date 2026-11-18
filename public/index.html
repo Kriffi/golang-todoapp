@@ -36,6 +36,7 @@
         <h2 class="subheading">Фильтры</h2>
         <label>Пользователь <select id="task-owner" class="owner"></select></label>
         <label>На странице <select id="task-limit"><option>10</option><option selected>20</option><option>50</option><option>100</option></select></label>
+        <label>Срок <select id="task-deadline-filter"><option value="">Все задачи</option><option value="overdue">Просроченные</option></select></label>
         <button class="reset" type="reset">Сбросить</button>
       </form>
       <div class="task-board">
@@ -86,6 +87,7 @@
     <div id="task-fields">
       <label>Название <input name="title" maxlength="100"></label>
       <label>Описание <textarea name="description" maxlength="1000"></textarea></label>
+      <label>Срок (необязательно) <input type="date" name="dueDate" min="0001-01-01" max="9999-12-31"></label>
       <label id="author-field">Пользователь <select name="author"></select></label>
     </div>
     <div id="user-fields">
@@ -115,6 +117,7 @@ const fields = editorForm.elements;
 const deleteDialog = byId("confirm-delete");
 const pageIndex = {tasks: 0, users: 0};
 const dateFormat = new Intl.DateTimeFormat("ru-RU", {year: "numeric", month: "short", day: "numeric"});
+const deadlineFormat = new Intl.DateTimeFormat("ru-RU", {dateStyle: "medium", timeZone: "UTC"});
 const elapsedFormat = new Intl.NumberFormat("ru-RU");
 const timeFormat = new Intl.DateTimeFormat("ru-RU", {month: "short", day: "numeric", hour: "2-digit", minute: "2-digit"});
 let currentPage = "tasks";
@@ -218,6 +221,12 @@ function taskCard(task) {
     element("span", "chip " + (task.completed ? "good" : "pending"), task.completed ? "✓ Готово: " + timeFormat.format(new Date(task.completed_at)) : "◷ В работе · " + formatElapsed(task.created_at, Date.now())),
     element("span", "chip", "v" + task.version)
   );
+  if (task.due_date) {
+    const overdue = !task.completed && task.due_date < new Date().toISOString().slice(0, 10);
+    const label = overdue ? "Просрочено: " : "Срок: ";
+    const date = deadlineFormat.format(new Date(task.due_date));
+    tags.append(element("span", overdue ? "chip overdue" : "chip", label + date));
+  }
   if (task.completed && task.completed_at) {
     const duration = element("span", "chip duration", "◷ " + formatElapsed(task.created_at, task.completed_at));
     duration.title = "Время выполнения";
@@ -278,6 +287,7 @@ async function loadList(kind, signal) {
   const offset = pageIndex[kind] * limit;
   const query = new URLSearchParams({limit: limit + 1, offset});
   if (isTasks && byId("task-owner").value) query.set("user_id", byId("task-owner").value);
+  if (isTasks && byId("task-deadline-filter").value === "overdue") query.set("overdue", "true");
   const result = (await api("/" + kind + "?" + query, "GET", undefined, signal)) || [];
   if (signal.aborted) return;
   if (result.length === 0 && pageIndex[kind] > 0) {
@@ -287,7 +297,7 @@ async function loadList(kind, signal) {
   const next = result.length > limit;
   const list = byId(prefix + "-list");
   list.replaceChildren(...result.slice(0, limit).map(isTasks ? taskCard : userCard));
-  if (result.length === 0) list.append(element("p", "empty", isTasks ? "Задач пока нет" : "Пользователей пока нет"));
+  if (result.length === 0) list.append(element("p", "empty", isTasks ? (query.has("overdue") ? "Просроченных задач нет" : "Задач пока нет") : "Пользователей пока нет"));
   showPageControls(kind, pageIndex[kind] > 0, next);
 }
 
@@ -351,7 +361,7 @@ function openEditor(kind, record) {
   byId("task-fields").hidden = !isTask;
   byId("user-fields").hidden = isTask;
   byId("author-field").hidden = Boolean(record);
-  fields.title.disabled = fields.description.disabled = !isTask;
+  fields.title.disabled = fields.description.disabled = fields.dueDate.disabled = !isTask;
   fields.author.disabled = !isTask || Boolean(record);
   fields.fullName.disabled = fields.phone.disabled = isTask;
   fields.title.required = fields.fullName.required = fields.author.required = true;
@@ -359,6 +369,7 @@ function openEditor(kind, record) {
     if (isTask) {
       fields.title.value = record.title;
       fields.description.value = record.description ?? "";
+      fields.dueDate.value = record.due_date ?? "";
     } else {
       fields.fullName.value = record.full_name;
       fields.phone.value = record.phone_number ?? "";
@@ -384,9 +395,11 @@ byId("reload-task").onclick = async () => {
     if (editing.record !== record || !editor.open) return;
     if (fields.title.value === record.title) fields.title.value = latest.title;
     if (fields.description.value === (record.description ?? "")) fields.description.value = latest.description ?? "";
+    if (fields.dueDate.value === (record.due_date ?? "")) fields.dueDate.value = latest.due_date ?? "";
     editing.record = latest;
     byId("conflict-details").textContent = "Актуальная версия v" + latest.version + ": " + latest.title +
-      (latest.description ? "\n" + latest.description : "");
+      (latest.description ? "\n" + latest.description : "") +
+      "\nСрок: " + (latest.due_date ?? "не указан");
     showError("editor-error");
     byId("save-edit").disabled = false;
   } catch (error) {
@@ -403,7 +416,7 @@ editorForm.addEventListener("submit", async event => {
   const {kind, record} = editing;
   const task = kind === "tasks";
   const body = task
-    ? {title: fields.title.value.trim(), description: fields.description.value.trim() || null}
+    ? {title: fields.title.value.trim(), description: fields.description.value.trim() || null, due_date: fields.dueDate.value || null}
     : {full_name: fields.fullName.value.trim(), phone_number: fields.phone.value.trim() || null};
   if (task && record) body.version = record.version;
   if (task && !record) body.author_user_id = Number(fields.author.value);

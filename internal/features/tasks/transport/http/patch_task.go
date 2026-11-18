@@ -13,6 +13,7 @@ import (
 
 type PatchTaskRequest struct {
 	Version     *int                             `json:"version,omitempty" minimum:"1" example:"1"`
+	DueDate     core_http_types.Nullable[string] `json:"due_date" swaggertype:"string" format:"date" example:"2026-12-01"`
 	Title       core_http_types.Nullable[string] `json:"title" swaggertype:"string"`
 	Description core_http_types.Nullable[string] `json:"description" swaggertype:"string"`
 	Completed   core_http_types.Nullable[bool]   `json:"completed" swaggertype:"boolean"`
@@ -110,9 +111,12 @@ func (h *TasksHTTPHandler) PatchTask(rw http.ResponseWriter, r *http.Request) {
 }
 
 func taskPatchFromRequest(request PatchTaskRequest) domain.TaskPatch {
-	return domain.NewTaskPatch(
+	patch := domain.NewTaskPatch(
 		request.Title.ToDomain(),
 		request.Description.ToDomain(),
 		request.Completed.ToDomain(),
 	)
+	patch.DueDate = request.DueDate.ToDomain()
+
+	return patch
 }

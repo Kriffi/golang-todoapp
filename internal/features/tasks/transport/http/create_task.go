@@ -11,6 +11,7 @@ import (
 
 type CreateTaskRequest struct {
 	Title        string  `json:"title" validate:"required,min=1,max=100"`
+	DueDate      *string `json:"due_date" format:"date" example:"2026-12-01"`
 	Description  *string `json:"description" validate:"omitempty,min=1,max=1000"`
 	AuthorUserID int     `json:"author_user_id" validate:"required"`
 }
@@ -46,6 +47,8 @@ func (h *TasksHTTPHandler) CreateTask(rw http.ResponseWriter, r *http.Request) {
 		request.Description,
 		request.AuthorUserID,
 	)
+
+	taskDomain.DueDate = request.DueDate
 
 	taskDomain, err := h.tasksService.CreateTask(ctx, taskDomain)
 	if err != nil {

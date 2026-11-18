@@ -26,6 +26,10 @@ definitions:
         maxLength: 1000
         minLength: 1
         type: string
+      due_date:
+        example: "2026-12-01"
+        format: date
+        type: string
       title:
         maxLength: 100
         minLength: 1
@@ -46,6 +50,10 @@ definitions:
         type: string
       description:
         type: string
+      due_date:
+        example: "2026-12-01"
+        format: date
+        type: string
       id:
         type: integer
       title:
@@ -58,6 +66,10 @@ definitions:
       completed:
         type: boolean
       description:
+        type: string
+      due_date:
+        example: "2026-12-01"
+        format: date
         type: string
       title:
         type: string
@@ -78,6 +90,10 @@ definitions:
         type: string
       description:
         type: string
+      due_date:
+        example: "2026-12-01"
+        format: date
+        type: string
       id:
         type: integer
       title:
@@ -96,6 +112,10 @@ definitions:
       created_at:
         type: string
       description:
+        type: string
+      due_date:
+        example: "2026-12-01"
+        format: date
         type: string
       id:
         type: integer
@@ -226,6 +246,10 @@ paths:
         in: query
         name: offset
         type: integer
+      - description: Только незавершённые задачи со сроком раньше текущей даты UTC
+        in: query
+        name: overdue
+        type: boolean
       produces:
       - application/json
       responses:

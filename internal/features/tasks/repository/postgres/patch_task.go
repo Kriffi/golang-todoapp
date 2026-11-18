@@ -25,6 +25,7 @@ func (r *TasksRepository) PatchTask(
 		description=$2,
 		completed=$3,
 		completed_at=$4,
+		due_date=$7::text::date,
 		version=version+1
 	WHERE id=$5 AND version=$6
 	RETURNING
@@ -35,7 +36,8 @@ func (r *TasksRepository) PatchTask(
 		completed,
 		created_at,
 		completed_at,
-		author_user_id
+		author_user_id,
+		to_char(due_date, 'YYYY-MM-DD')
 	`
 
 	row := r.pool.QueryRow(
@@ -47,6 +49,7 @@ func (r *TasksRepository) PatchTask(
 		task.CompletedAt,
 		id,
 		task.Version,
+		task.DueDate,
 	)
 
 	var taskModel TaskModel
@@ -59,6 +62,7 @@ func (r *TasksRepository) PatchTask(
 		&taskModel.CreatedAt,
 		&taskModel.CompletedAt,
 		&taskModel.AuthorUserID,
+		&taskModel.DueDate,
 	)
 	if err != nil {
 		if errors.Is(err, core_postgres_pool.ErrNoRows) {

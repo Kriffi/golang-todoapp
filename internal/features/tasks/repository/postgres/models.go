@@ -11,6 +11,7 @@ type TaskModel struct {
 	Version      int
 	Title        string
 	Description  *string
+	DueDate      *string
 	Completed    bool
 	CreatedAt    time.Time
 	CompletedAt  *time.Time
@@ -28,7 +29,7 @@ func taskDomainsFromModels(taskModels []TaskModel) []domain.Task {
 }
 
 func taskDomainFromModel(model TaskModel) domain.Task {
-	return domain.NewTask(
+	task := domain.NewTask(
 		model.ID,
 		model.Version,
 		model.Title,
@@ -38,4 +39,7 @@ func taskDomainFromModel(model TaskModel) domain.Task {
 		model.CompletedAt,
 		model.AuthorUserID,
 	)
+	task.DueDate = model.DueDate
+
+	return task
 }

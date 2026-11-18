@@ -12,6 +12,7 @@ type Task struct {
 	Version      int
 	Title        string
 	Description  *string
+	DueDate      *string
 	Completed    bool
 	CreatedAt    time.Time
 	CompletedAt  *time.Time
@@ -78,6 +79,13 @@ func (t *Task) Validate() error {
 		}
 	}
 
+	if t.DueDate != nil {
+		date, err := time.Parse(time.DateOnly, *t.DueDate)
+		if err != nil || date.Year() < 1 || date.Format(time.DateOnly) != *t.DueDate {
+			return fmt.Errorf("due_date must be a valid YYYY-MM-DD date: %w", core_errors.ErrInvalidArgument)
+		}
+	}
+
 	if t.Completed {
 		if t.CompletedAt == nil {
 			return fmt.Errorf(
@@ -117,6 +125,7 @@ func (t *Task) CompletionDuration() *time.Duration {
 type TaskPatch struct {
 	Title       Nullable[string]
 	Description Nullable[string]
+	DueDate     Nullable[string]
 	Completed   Nullable[bool]
 }
 
@@ -163,6 +172,10 @@ func (t *Task) ApplyPatch(patch TaskPatch) error {
 
 	if patch.Description.Set {
 		tmp.Description = patch.Description.Value
+	}
+
+	if patch.DueDate.Set {
+		tmp.DueDate = patch.DueDate.Value
 	}
 
 	if patch.Completed.Set {
