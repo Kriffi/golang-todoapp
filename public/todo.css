@@ -189,25 +189,25 @@ h1 { margin: 0; font-size: clamp(2rem, 3.25vw, 4rem); letter-spacing: -.055em; l
   align-items: center;
   margin-bottom: clamp(25px, 3vw, 48px);
   color: #fff;
-  background: #202981;
+  background: #1c2233;
 }
 .task-hero::before {
   content: "";
   position: absolute;
   inset: 0 0 0 34%;
   z-index: -2;
-  background: url("/assets/todo-hero.webp") right 32% / cover no-repeat;
+  background: url("/assets/todo-hero.webp") right center / auto 125% no-repeat;
 }
 .task-hero::after {
   content: "";
   position: absolute;
   inset: 0;
   z-index: -1;
-  background: linear-gradient(90deg, #202981 8%, #202981 32%, #202981aa 48%, transparent 72%);
+  background: linear-gradient(90deg, #1c2233 12%, #1c2233 32%, #1c2233b8 47%, transparent 72%);
 }
 .hero-content h1 { font-size: clamp(2.9rem, 5.4vw, 6.2rem); }
-.hero-content .primary { margin-top: 21px; background: white; color: #233383; border-color: white; }
-.hero-content .primary:hover { background: #e0e7ff; }
+.hero-content .primary { margin-top: 21px; background: white; color: #1c2233; border-color: white; }
+.hero-content .primary:hover { background: #e8ebf4; }
 
 .task-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(230px, 0.35fr); gap: clamp(18px, 2vw, 34px); align-items: start; }
 .task-board { grid-area: 1 / 1; min-width: 0; }
@@ -391,8 +391,8 @@ dialog footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 
   .theme-label { display: none; }
   main { width: auto; margin: 0; padding: 18px 14px; }
   .task-hero { border-radius: 17px; }
-  .task-hero::before { inset-inline-start: 20%; }
-  .task-hero::after { background: linear-gradient(90deg, #202981 7%, #202981de 46%, #20298127 100%); }
+  .task-hero::before { inset-inline-start: 20%; background-size: auto 110%; }
+  .task-hero::after { background: linear-gradient(90deg, #1c2233 5%, #1c2233eb 39%, #1c22336b 100%); }
   .record { gap: 7px; }
 }
 
