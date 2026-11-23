@@ -34,6 +34,9 @@ import (
 // @description Todo Application REST-API scheme
 // @BasePath /api/v1
 func main() {
+	if len(os.Args) == 3 && os.Args[1] == "check-migrations" {
+		os.Exit(checkMigrationVersion(os.Args[2]))
+	}
 	cfg := core_config.NewConfigMust()
 	time.Local = cfg.TimeZone
 

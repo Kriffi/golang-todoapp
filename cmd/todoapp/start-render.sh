@@ -25,6 +25,14 @@ case "$migration_url" in
     *) separator='?' ;;
 esac
 
-migrate -path /app/migrations -database "${migration_url}${separator}search_path=public" up
+if /app/exe check-migrations /app/migrations; then
+    :
+else
+    status=$?
+    if [ "$status" -ne 1 ]; then
+        exit "$status"
+    fi
+    migrate -path /app/migrations -database "${migration_url}${separator}search_path=public" up
+fi
 export HTTP_ADDR=:${PORT:-10000}
 exec /app/exe
