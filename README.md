@@ -18,7 +18,7 @@ https://kriffi-todoapp-be3n.onrender.com/
 
 Go-сервис рассчитывает показатели SQL-запросом в PostgreSQL на Neon. Redash получает сводки по HTTPS из публичного API TodoApp и обновляет открытый отчёт раз в минуту. Публичный набор данных содержит только агрегаты.
 
-[Открыть TodoApp](https://kriffi-todoapp-be3n.onrender.com/) · [Открыть дашборд Redash](https://kriffi-todoapp-redash.onrender.com/demo) · [Устройство отчёта и локальный запуск](analytics/README.md)
+[Открыть отчёт в TodoApp](https://kriffi-todoapp-be3n.onrender.com/?view=redash) · [Открыть дашборд отдельно в Redash](https://kriffi-todoapp-redash.onrender.com/demo) · [Устройство отчёта и локальный запуск](analytics/README.md)
 
 ![Дашборд Redash в разделе «Статистика» на опубликованном сайте TodoApp](docs/screenshots/redash-in-todoapp.jpg)
 

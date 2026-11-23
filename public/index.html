@@ -507,14 +507,19 @@ byId("redash-panel").addEventListener("toggle", event => {
 });
 
 const nav = [...document.querySelectorAll("nav button")];
+function showPage(page) {
+  currentPage = page;
+  for (const item of nav) {
+    const selected = item.dataset.page === page;
+    byId(item.dataset.page).hidden = !selected;
+    if (selected) item.setAttribute("aria-current", "page");
+    else item.removeAttribute("aria-current");
+  }
+}
+
 for (const button of nav) {
   button.addEventListener("click", () => {
-    currentPage = button.dataset.page;
-    for (const item of nav) {
-      byId(item.dataset.page).hidden = item !== button;
-      if (item === button) item.setAttribute("aria-current", "page");
-      else item.removeAttribute("aria-current");
-    }
+    showPage(button.dataset.page);
     refresh();
   });
 }
@@ -531,6 +536,10 @@ byId("theme").onclick = () => {
   localStorage.setItem("todoapp-theme", theme);
 };
 
+if (new URLSearchParams(location.search).get("view") === "redash") {
+  showPage("statistics");
+  byId("redash-panel").open = true;
+}
 refresh();
 </script>
 </body>
