@@ -326,6 +326,18 @@ input, select, textarea {
 }
 .metric small, .panel small { color: var(--muted); }
 .panel h2 { margin: 0 0 15px; font-size: 1.2rem; }
+.redash-panel { margin-bottom: 18px; }
+.redash-panel summary { cursor: pointer; font-weight: 700; }
+.redash-panel p { margin: 12px 0; color: var(--muted); }
+.redash-panel a { color: var(--accent); }
+.redash-panel iframe {
+  display: block;
+  width: 100%;
+  height: max(520px, 78vh);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+}
 .progress-label { display: flex; justify-content: space-between; }
 .track { height: 9px; background: var(--field); border-radius: 10px; overflow: hidden; margin: 7px 0 15px; }
 .bar { background: var(--green); height: 100%; transition: width .2s; }

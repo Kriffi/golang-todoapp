@@ -57,6 +57,13 @@
   </section>
   <section id="statistics" hidden>
     <header class="page-heading"><h1>Статистика</h1></header>
+    <details class="panel redash-panel" id="redash-panel">
+      <summary>Аналитика задач в Redash</summary>
+      <p>Отчёт по срокам, нагрузке и выполнению задач на демонстрационных данных.
+        <a id="redash-link" href="https://kriffi-todoapp-redash.onrender.com/demo" target="_blank" rel="noopener">Открыть в новой вкладке</a>
+      </p>
+      <iframe id="redash-dashboard" title="Дашборд TodoApp в Redash"></iframe>
+    </details>
     <form class="filters" id="stats-filters">
       <label>Пользователь <select id="stats-owner" class="owner"></select></label>
       <label>С <input id="stats-from" type="date"></label>
@@ -492,6 +499,12 @@ for (const [prefix, page] of [["task", "tasks"], ["user", "users"]]) {
 }
 byId("stats-filters").addEventListener("submit", event => { event.preventDefault(); refresh(); });
 byId("stats-filters").addEventListener("reset", () => setTimeout(refresh, 0));
+byId("redash-panel").addEventListener("toggle", event => {
+  const frame = byId("redash-dashboard");
+  if (event.currentTarget.open && !frame.hasAttribute("src")) {
+    frame.src = byId("redash-link").href;
+  }
+});
 
 const nav = [...document.querySelectorAll("nav button")];
 for (const button of nav) {
