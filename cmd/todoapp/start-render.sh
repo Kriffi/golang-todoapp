@@ -15,11 +15,16 @@ case "$DATABASE_URL" in
         ;;
 esac
 
-case "$DATABASE_URL" in
+# Migration locks must stay on one PostgreSQL session. Neon pooler hostnames
+# can be converted to their direct endpoint without changing the app connection.
+migration_url=$(printf '%s' "$DATABASE_URL" | sed -E \
+    's~^([a-zA-Z]+://[^/@]+@ep-[a-z0-9-]+)-pooler(\.([a-z0-9-]+\.)*neon\.tech)([:/?]|$)~\1\2\4~')
+
+case "$migration_url" in
     *\?*) separator='&' ;;
     *) separator='?' ;;
 esac
 
-migrate -path /app/migrations -database "${DATABASE_URL}${separator}search_path=public" up
+migrate -path /app/migrations -database "${migration_url}${separator}search_path=public" up
 export HTTP_ADDR=:${PORT:-10000}
 exec /app/exe
