@@ -1,0 +1,55 @@
+#!/bin/bash
+set -euo pipefail
+
+runtime=$(mktemp -d)
+export PATH="/usr/lib/postgresql/15/bin:$PATH"
+export PYTHONPATH="/app:/analytics"
+export REDASH_HOST="${REDASH_HOST:-https://${RENDER_EXTERNAL_HOSTNAME:-localhost}}"
+export REDASH_PUBLIC_DEMO=1
+export REDASH_DEMO_REDIRECT_FILE="$runtime/dashboard-path"
+export REDASH_ENABLED_QUERY_RUNNERS=redash.query_runner.pg
+export REDASH_REDIS_URL=redis://127.0.0.1:6379/0
+export REPORTING_HOST=127.0.0.1
+
+random_secret() {
+    python -c 'import secrets; print(secrets.token_hex(32))'
+}
+pg_password=$(random_secret)
+export REPORTING_PASSWORD=$(random_secret)
+export REDASH_SECRET_KEY=$(random_secret)
+export REDASH_COOKIE_SECRET=$(random_secret)
+export REDASH_ADMIN_PASSWORD=$(random_secret)
+export REDASH_DATABASE_URL="postgresql://redash:$pg_password@127.0.0.1:5432/redash"
+
+cleanup() {
+    for pid in "${server_pid:-}" "${worker_pid:-}" "${redis_pid:-}"; do
+        if [ -n "$pid" ]; then
+            kill -TERM "$pid" 2>/dev/null || true
+        fi
+    done
+    pg_ctl -D "$runtime/pg" -m fast -w stop >/dev/null 2>&1 || true
+    rm -r -- "$runtime"
+}
+trap 'exit 143' TERM
+trap 'exit 130' INT
+trap cleanup EXIT
+
+initdb -D "$runtime/pg" --username=redash --auth-local=trust --auth-host=scram-sha-256 \
+    --pwfile=<(printf '%s\n' "$pg_password") --no-locale --encoding=UTF8 > /dev/null
+pg_ctl -D "$runtime/pg" -l "$runtime/postgres.log" \
+    -o "-h 127.0.0.1 -k $runtime -c shared_buffers=16MB -c max_connections=24" -w start > /dev/null
+createdb -h "$runtime" -U redash redash
+psql -h "$runtime" -U redash -d redash -v ON_ERROR_STOP=1 -f /analytics/init-demo.sql > /dev/null
+
+redis-server --bind 127.0.0.1 --protected-mode yes --save '' --appendonly no \
+    --maxmemory 16mb --maxmemory-policy noeviction &
+redis_pid=$!
+/app/bin/docker-entrypoint create_db
+
+/app/manage.py rq worker queries schemas default &
+worker_pid=$!
+python /analytics/bootstrap.py
+
+gunicorn -b "0.0.0.0:${PORT:-5000}" --workers 1 --timeout 60 demo_wsgi:app &
+server_pid=$!
+wait -n "$redis_pid" "$worker_pid" "$server_pid"

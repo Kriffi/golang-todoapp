@@ -1,0 +1,67 @@
+name: todoapp-redash
+
+x-redash: &redash
+  image: redash/redash:26.9.0
+  environment: &redash-env
+    REDASH_DATABASE_URL: postgresql://redash:${REDASH_DB_PASSWORD:?Set REDASH_DB_PASSWORD}@postgres:5432/redash
+    REDASH_REDIS_URL: redis://redis:6379/0
+    REDASH_COOKIE_SECRET: ${REDASH_COOKIE_SECRET:?Set REDASH_COOKIE_SECRET}
+    REDASH_SECRET_KEY: ${REDASH_SECRET_KEY:?Set REDASH_SECRET_KEY}
+    REDASH_HOST: http://localhost:5001
+    REDASH_WEB_WORKERS: "1"
+    REDASH_GUNICORN_BIND: 0.0.0.0:5000
+    REDASH_ENABLED_QUERY_RUNNERS: redash.query_runner.pg
+  depends_on:
+    postgres:
+      condition: service_healthy
+    redis:
+      condition: service_started
+
+services:
+  postgres:
+    image: postgres:18.1-bookworm
+    environment:
+      POSTGRES_USER: redash
+      POSTGRES_DB: redash
+      POSTGRES_PASSWORD: ${REDASH_DB_PASSWORD:?Set REDASH_DB_PASSWORD}
+      REPORTING_PASSWORD: ${REPORTING_PASSWORD:?Set REPORTING_PASSWORD}
+    volumes:
+      - postgres:/var/lib/postgresql
+      - ./init-demo.sql:/docker-entrypoint-initdb.d/10-demo.sql:ro
+      - ../migrations:/migrations:ro
+    healthcheck:
+      test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-U", "redash"]
+      interval: 2s
+      timeout: 2s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+
+  initialize:
+    <<: *redash
+    command: create_db
+    profiles: [setup]
+
+  server:
+    <<: *redash
+    command: server
+    environment:
+      <<: *redash-env
+      REPORTING_PASSWORD: ${REPORTING_PASSWORD:?Set REPORTING_PASSWORD}
+      REDASH_ADMIN_PASSWORD: ${REDASH_ADMIN_PASSWORD:?Set REDASH_ADMIN_PASSWORD}
+    volumes:
+      - ./:/analytics:ro
+    ports:
+      - "127.0.0.1:5001:5000"
+
+  worker:
+    <<: *redash
+    command: ["manage", "rq", "worker", "queries", "scheduled_queries", "schemas", "default", "periodic"]
+
+  scheduler:
+    <<: *redash
+    command: scheduler
+
+volumes:
+  postgres:

@@ -1,1 +1,2 @@
 cmd/todoapp/start-render.sh text eol=lf
+analytics/start-demo.sh text eol=lf
