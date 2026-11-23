@@ -7,7 +7,14 @@ export PYTHONPATH="/app:/analytics"
 export REDASH_HOST="${REDASH_HOST:-https://${RENDER_EXTERNAL_HOSTNAME:-localhost}}"
 export REDASH_PUBLIC_DEMO=1
 export REDASH_DEMO_REDIRECT_FILE="$runtime/dashboard-path"
-export REDASH_ENABLED_QUERY_RUNNERS=redash.query_runner.pg
+if [ -n "${RENDER_EXTERNAL_HOSTNAME:-}" ]; then
+    export REDASH_SOURCE_URL="${REDASH_SOURCE_URL:-https://kriffi-todoapp-be3n.onrender.com/api/v1/statistics/public}"
+fi
+if [ -n "${REDASH_SOURCE_URL:-}" ]; then
+    export REDASH_ENABLED_QUERY_RUNNERS=redash.query_runner.json_ds
+else
+    export REDASH_ENABLED_QUERY_RUNNERS=redash.query_runner.pg
+fi
 # A hostname preserves the URL scheme when Redash adds its query options.
 export REDASH_REDIS_URL="unix://localhost$runtime/redis.sock?db=0"
 export REDASH_LIMITER_STORAGE="redis+unix://localhost$runtime/redis.sock?db=0"
@@ -41,7 +48,9 @@ initdb -D "$runtime/pg" --username=redash --auth-local=scram-sha-256 --auth-host
 pg_ctl -D "$runtime/pg" -l "$runtime/postgres.log" \
     -o "-h '' -k $runtime -c shared_buffers=16MB -c max_connections=24" -w start > /dev/null
 PGPASSWORD="$pg_password" createdb -h "$runtime" -U redash redash
-PGPASSWORD="$pg_password" psql -h "$runtime" -U redash -d redash -v ON_ERROR_STOP=1 -f /analytics/init-demo.sql > /dev/null
+if [ -z "${REDASH_SOURCE_URL:-}" ]; then
+    PGPASSWORD="$pg_password" psql -h "$runtime" -U redash -d redash -v ON_ERROR_STOP=1 -f /analytics/init-demo.sql > /dev/null
+fi
 
 redis-server --port 0 --unixsocket "$runtime/redis.sock" --unixsocketperm 700 --save '' --appendonly no \
     --maxmemory 16mb --maxmemory-policy noeviction &

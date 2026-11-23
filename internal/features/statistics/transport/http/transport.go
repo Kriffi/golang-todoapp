@@ -14,6 +14,7 @@ type StatisticsHTTPHandler struct {
 }
 
 type StatisticsService interface {
+	GetPublicAnalytics(ctx context.Context) (domain.PublicAnalytics, error)
 	GetStatistics(
 		ctx context.Context,
 		userID *int,
@@ -36,6 +37,11 @@ func (h *StatisticsHTTPHandler) Routes() []core_http_server.Route {
 			Method:  http.MethodGet,
 			Path:    "/statistics",
 			Handler: h.GetStatistics,
+		},
+		{
+			Method:  http.MethodGet,
+			Path:    "/statistics/public",
+			Handler: h.GetPublicAnalytics,
 		},
 	}
 }

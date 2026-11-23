@@ -1,8 +1,10 @@
 """Create and verify the TodoApp dashboard in Redash 26.9."""
 
+import json
 import os
 import time
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from redash.handlers.setup import create_org
 from redash.models import Organization, User
@@ -12,8 +14,9 @@ from redash.wsgi import app
 HERE = Path(__file__).resolve().parent
 HOST = os.environ.get("REDASH_HOST", "http://localhost:5001")
 ADMIN_EMAIL = os.environ.get("REDASH_ADMIN_EMAIL", "todoapp@example.com")
-DASHBOARD = "TodoApp · Аналитика задач"
-DATASOURCE = "TodoApp · PostgreSQL demo"
+SOURCE_URL = os.environ.get("REDASH_SOURCE_URL")
+DASHBOARD = "TodoApp · Сводная аналитика Neon" if SOURCE_URL else "TodoApp · Аналитика задач"
+DATASOURCE = "TodoApp · Сводные данные Neon" if SOURCE_URL else "TodoApp · PostgreSQL demo"
 USER_PARAM = {
     "name": "user_id",
     "title": "Пользователь (0 — все, 1–4 — ID)",
@@ -30,6 +33,15 @@ REPORTS = (
      ("Создано", "Закрыто"), (0, 11, 12, 7)),
     ("overdue", "Просроченные задачи", "TABLE", None, (), (0, 18, 12, 9)),
 )
+PUBLIC_REPORTS = (
+    REPORTS[0],
+    ("status", "Задачи по статусам", "CHART", "Статус", ("Задачи",), (0, 4, 7, 7)),
+    REPORTS[2],
+    REPORTS[3],
+    ("due_soon", "Ближайшие сроки", "CHART", "День", ("Задачи",), (0, 18, 12, 7)),
+)
+OVERVIEW_FIELDS = ("Всего", "Выполнено", "Открыто", "Просрочено", "Срок в ближайшие 7 дней",
+                   "Доля выполнения (%)", "Среднее время выполнения (ч)")
 
 
 def read_admin_key():
@@ -76,9 +88,9 @@ def display_options(x, series, key):
     chart_type = "line" if key == "throughput" else "column"
     return {
         "globalSeriesType": chart_type,
-        "sortX": key == "throughput",
+        "sortX": key in ("throughput", "due_soon"),
         "legend": {"enabled": len(series) > 1},
-        "xAxis": {"type": "datetime" if key == "throughput" else "category"},
+        "xAxis": {"type": "datetime" if key in ("throughput", "due_soon") else "category"},
         "yAxis": [{"type": "linear"}, {"type": "linear", "opposite": True}],
         "columnMapping": {x: "x", **{name: "y" for name in series}},
     }
@@ -96,6 +108,29 @@ def verify_default_results(rows):
     assert all(row["Дней просрочки"] > 0 for row in overdue)
 
 
+def source_definition():
+    if SOURCE_URL:
+        url = urlsplit(SOURCE_URL)
+        return {"type": "json", "options": {"base_url": f"{url.scheme}://{url.netloc}"}}
+    return {"type": "pg", "options": {
+        "host": os.environ.get("REPORTING_HOST", "postgres"),
+        "port": int(os.environ.get("REPORTING_PORT", "5432")),
+        "dbname": os.environ.get("REPORTING_DB", "todoapp_demo"),
+        "sslmode": os.environ.get("REPORTING_SSLMODE", "prefer"),
+        "user": "todoapp_reporting",
+        "password": os.environ["REPORTING_PASSWORD"],
+    }}
+
+
+def query_definition(key, x, series):
+    if SOURCE_URL:
+        # JSON is valid YAML; Redash's JSON runner can select a response section.
+        fields = (x, *series) if x else OVERVIEW_FIELDS
+        return {"query": json.dumps({"url": SOURCE_URL, "path": key, "fields": fields}, ensure_ascii=False)}
+    return {"query": (HERE / "queries" / f"{key}.sql").read_text(encoding="utf-8"),
+            "options": {"parameters": [USER_PARAM]}}
+
+
 def main():
     client = app.test_client()
     client.environ_base["HTTP_AUTHORIZATION"] = f"Key {read_admin_key()}"
@@ -104,15 +139,7 @@ def main():
     if source is None:
         source = request(client, "/api/data_sources", {
             "name": DATASOURCE,
-            "type": "pg",
-            "options": {
-                "host": os.environ.get("REPORTING_HOST", "postgres"),
-                "port": int(os.environ.get("REPORTING_PORT", "5432")),
-                "dbname": os.environ.get("REPORTING_DB", "todoapp_demo"),
-                "sslmode": os.environ.get("REPORTING_SSLMODE", "prefer"),
-                "user": "todoapp_reporting",
-                "password": os.environ["REPORTING_PASSWORD"],
-            },
+            **source_definition(),
         })
     dashboards = request(client, "/api/dashboards/my")["results"]
     dashboard = next((item for item in dashboards if item["name"] == DASHBOARD), None)
@@ -124,21 +151,21 @@ def main():
                for widget in dashboard["widgets"] if widget.get("visualization")}
     existing_queries = request(client, "/api/queries/my?page_size=100")["results"]
     results = {}
-    for key, name, visual_type, x, series, (col, row, width, height) in REPORTS:
+    for key, name, visual_type, x, series, (col, row, width, height) in (PUBLIC_REPORTS if SOURCE_URL else REPORTS):
         query_name = f"TodoApp · {name}"
         query = next((item for item in existing_queries if item["name"] == query_name), None)
         if query is None:
             query = request(client, "/api/queries", {
                 "name": query_name,
-                "query": (HERE / "queries" / f"{key}.sql").read_text(encoding="utf-8"),
                 "data_source_id": source["id"],
-                "options": {"parameters": [USER_PARAM]},
+                **query_definition(key, x, series),
             })
         query_id = query["id"]
-        results[key] = result_rows(client, query_id, 0)
-        if key == "overview":
-            assert result_rows(client, query_id, 1)[0]["Всего"] == 16
-            assert result_rows(client, query_id, -1)[0]["Всего"] == 0
+        if not SOURCE_URL:
+            results[key] = result_rows(client, query_id, 0)
+            if key == "overview":
+                assert result_rows(client, query_id, 1)[0]["Всего"] == 16
+                assert result_rows(client, query_id, -1)[0]["Всего"] == 0
         if name in widgets:
             continue
         query = request(client, f"/api/queries/{query_id}")
@@ -159,16 +186,16 @@ def main():
             "width": 1,
         })
         request(client, f"/api/queries/{query_id}", {"is_draft": False})
-    verify_default_results(results)
+    if not SOURCE_URL:
+        verify_default_results(results)
     dashboard = request(client, dashboard_path, {"is_draft": False})
     print(f"{HOST}/dashboards/{dashboard['slug']}")
     if os.environ.get("REDASH_PUBLIC_DEMO") == "1":
         public_url = dashboard.get("public_url") or request(client, f"{dashboard_path}/share", {})["public_url"]
         if target := os.environ.get("REDASH_DEMO_REDIRECT_FILE"):
-            from urllib.parse import urlsplit
-
             url = urlsplit(public_url)
-            Path(target).write_text(f"{url.path}?{url.query}", encoding="utf-8")
+            refresh = "&refresh=60" if SOURCE_URL else ""
+            Path(target).write_text(f"{url.path}?{url.query}{refresh}", encoding="utf-8")
         else:
             print(public_url)
 
